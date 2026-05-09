@@ -437,12 +437,16 @@ public final class AppSettings {
 
     // MARK: - Initialisation
 
-    /// Production initialiser — uses the real UserDefaults suite and the
+    /// Production initialiser — uses the standard UserDefaults and the
     /// security-scoped bookmark API.
+    ///
+    /// `UserDefaults(suiteName:)` returns nil when the suite name matches
+    /// the running process's bundle identifier (Apple reserves that case for
+    /// `.standard`), so we use `.standard` directly here. Tests pass an
+    /// in-memory suite via the designated init.
     public convenience init() {
-        let defaults = UserDefaults(suiteName: "com.tomkaczocha.SystemAudioRecorder")!
         self.init(
-            defaults: defaults,
+            defaults: .standard,
             bookmarkProvider: SecurityScopedBookmarkProvider(),
             folderCreator: FileManagerFolderCreator()
         )

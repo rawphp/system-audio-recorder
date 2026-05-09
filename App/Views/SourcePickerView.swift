@@ -297,7 +297,7 @@ public struct SourcePickerView: View {
         Button {
             viewModel.select(item)
         } label: {
-            Label(item.label, systemImage: selectedCheckmark(item))
+            menuItemLabel(item)
         }
         .disabled(disabled)
     }
@@ -313,7 +313,7 @@ public struct SourcePickerView: View {
             Button {
                 viewModel.select(item)
             } label: {
-                Label(item.label, systemImage: selectedCheckmark(item))
+                menuItemLabel(item)
             }
             .disabled(disabled)
         }
@@ -329,7 +329,7 @@ public struct SourcePickerView: View {
             Button {
                 viewModel.select(item)
             } label: {
-                Label(item.label, systemImage: selectedCheckmark(item))
+                menuItemLabel(item)
             }
             .disabled(disabled)
         }
@@ -356,10 +356,15 @@ public struct SourcePickerView: View {
         }
     }
 
-    /// Returns "checkmark" when the item is currently selected, else an empty string.
-    private func selectedCheckmark(_ item: PickerItem) -> String {
-        let key = selectedKeyForItem(item)
-        return viewModel.selectedPresetKey == key ? "checkmark" : ""
+    /// Renders a menu-item label with a leading checkmark when selected, plain text otherwise.
+    /// Avoids passing an empty string to `Label(systemImage:)`, which logs a SwiftUI fault.
+    @ViewBuilder
+    private func menuItemLabel(_ item: PickerItem) -> some View {
+        if viewModel.selectedPresetKey == selectedKeyForItem(item) {
+            Label(item.label, systemImage: "checkmark")
+        } else {
+            Text(item.label)
+        }
     }
 
     private func selectedKeyForItem(_ item: PickerItem) -> String {
