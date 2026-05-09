@@ -161,6 +161,37 @@ public struct ContentView: View {
                 SaveToast(viewModel: tvm)
             }
         }
+        // Banner stack (REQ-033) — overlaid at the top of the window.
+        .overlay(alignment: .top) {
+            if let store = appStore {
+                BannerStackView(errorSurface: store.errorSurface)
+                    .padding(.top, 4)
+            }
+        }
+        // Fatal alert (REQ-033) — modal when errorSurface.currentAlert is non-nil.
+        .alert(
+            appStore?.errorSurface.currentAlert?.title ?? "",
+            isPresented: Binding(
+                get: { appStore?.errorSurface.currentAlert != nil },
+                set: { if !$0 { appStore?.errorSurface.dismissAlert() } }
+            )
+        ) {
+            if let alert = appStore?.errorSurface.currentAlert {
+                Button(alert.primaryButton, role: .cancel) {
+                    appStore?.errorSurface.dismissAlert()
+                }
+                if let secondary = alert.secondaryButton, let pane = alert.secondaryAction {
+                    Button(secondary) {
+                        NSWorkspace.shared.open(pane.url)
+                        appStore?.errorSurface.dismissAlert()
+                    }
+                }
+            }
+        } message: {
+            if let msg = appStore?.errorSurface.currentAlert?.message {
+                Text(msg)
+            }
+        }
         .task {
             // Build the SourcePickerViewModel once when the view appears.
             // We use .task so it runs on the MainActor when the view is
@@ -177,6 +208,60 @@ public struct ContentView: View {
                 jobsVM = EncodingJobsViewModel(queue: store.encodingQueue)
             }
         }
+    }
+}
+
+// MARK: - BannerStackView (REQ-033)
+
+/// Renders up to 3 non-fatal / background banners from `ErrorSurface.banners`.
+/// A "+N more" label is shown when `collapsedCount > 0`.
+public struct BannerStackView: View {
+    var errorSurface: ErrorSurface
+
+    public var body: some View {
+        VStack(spacing: 4) {
+            ForEach(errorSurface.banners) { banner in
+                BannerRow(banner: banner, errorSurface: errorSurface)
+            }
+            if errorSurface.collapsedCount > 0 {
+                Text("+\(errorSurface.collapsedCount) more")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+            }
+        }
+    }
+}
+
+/// A single banner row with an optional dismiss X button.
+private struct BannerRow: View {
+    let banner: AppBanner
+    var errorSurface: ErrorSurface
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+            Text(banner.message)
+                .font(.caption)
+                .lineLimit(2)
+            Spacer()
+            if banner.dismissible {
+                Button {
+                    errorSurface.dismiss(banner: banner.id)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .imageScale(.small)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 8)
     }
 }
 

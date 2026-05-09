@@ -159,6 +159,11 @@ public final class AppStore {
     public let meters: MeterPublisher
     private let sessionConfigBuilder: SessionConfigBuilder
 
+    // MARK: - Error surface (REQ-033)
+
+    /// Routes typed errors to the appropriate UI surface (modal alert, banner, or toast).
+    public let errorSurface: ErrorSurface
+
     // MARK: - Recording state
 
     /// The active session, or `nil` when idle/stopped.
@@ -193,7 +198,8 @@ public final class AppStore {
         permissionManager: PermissionManager,
         encodingQueue: EncodingQueue,
         meters: MeterPublisher,
-        sessionConfigBuilder: SessionConfigBuilder
+        sessionConfigBuilder: SessionConfigBuilder,
+        errorSurface: ErrorSurface? = nil
     ) {
         self.settings = settings
         self.sourceCatalog = sourceCatalog
@@ -201,6 +207,7 @@ public final class AppStore {
         self.encodingQueue = encodingQueue
         self.meters = meters
         self.sessionConfigBuilder = sessionConfigBuilder
+        self.errorSurface = errorSurface ?? ErrorSurface()
     }
 
     /// Convenience production initialiser — wires the default subsystems together.
