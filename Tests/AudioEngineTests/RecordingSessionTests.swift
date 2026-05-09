@@ -351,4 +351,142 @@ final class RecordingSessionTests: XCTestCase {
         // Just confirm non-nil access; we don't assert anything is delivered.
         _ = stream
     }
+
+    // MARK: - REQ-014: Auto-stop by duration
+
+    /// AC1: autoStopDuration = 1.0 → session reaches .stopped at t ≈ 1.0 s (±0.2 s)
+    func testAutoStopFiresAfterDuration() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        // Build a config with autoStopDuration = 1.0 s
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopDuration: 1.0
+        )
+
+        let t0 = Date()
+        try await session.start(config: cfg)
+
+        // Drive buffers while we wait for auto-stop (up to 2 s)
+        let deadline = Date().addingTimeInterval(2.0)
+        while Date() < deadline {
+            e.push()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+            let s = await session.state
+            if s == .stopped { break }
+        }
+
+        let elapsed = Date().timeIntervalSince(t0)
+        let s = await session.state
+        XCTAssertEqual(s, .stopped, "session should have auto-stopped")
+        XCTAssertGreaterThan(elapsed, 0.8, "stopped too early: \(elapsed)s")
+        XCTAssertLessThan(elapsed, 1.5, "stopped too late: \(elapsed)s")
+    }
+
+    /// AC2: Pause at ~0.5 s, resume at ~1.5 s → stop fires at ~2.0 s
+    ///       (0.5 s recorded before pause + 1.5 s recorded after resume = total 2.0 s)
+    func testAutoStopRespectsPausedTime() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopDuration: 2.0
+        )
+
+        let t0 = Date()
+        try await session.start(config: cfg)
+
+        // Drive for ~0.5 s then pause
+        let driveTask = Task.detached {
+            while true {
+                e.push()
+                try? await Task.sleep(nanoseconds: 10_000_000)
+                let s = await session.state
+                if s == .stopped { break }
+            }
+        }
+
+        // Wait 0.5 s, then pause for 1.0 s, then resume
+        try await Task.sleep(nanoseconds: 500_000_000)
+        try await session.pause()
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 s paused
+        try await session.resume()
+
+        // Wait for auto-stop (up to 3 s total)
+        let deadlineAbs = Date().addingTimeInterval(3.0)
+        while Date() < deadlineAbs {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            let s = await session.state
+            if s == .stopped { break }
+        }
+        driveTask.cancel()
+
+        let elapsed = Date().timeIntervalSince(t0)
+        let s = await session.state
+        XCTAssertEqual(s, .stopped, "session should have auto-stopped")
+        // We recorded 0.5 s before pause + 1.5 s after resume = 2.0 s total.
+        // Total wall clock: 0.5 (record) + 1.0 (paused) + 1.5 (record) = 3.0 s
+        // Allow ±0.4 s tolerance given scheduling jitter.
+        XCTAssertGreaterThan(elapsed, 2.5, "stopped too early: \(elapsed)s")
+        XCTAssertLessThan(elapsed, 4.0, "stopped too late: \(elapsed)s")
+    }
+
+    /// AC3: nil autoStopDuration → no auto-stop fires; session stays recording.
+    func testNilAutoStopDurationNoTimer() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopDuration: nil
+        )
+
+        try await session.start(config: cfg)
+
+        // Drive buffers and confirm session is still recording after 0.5 s
+        await driveBuffers([e], count: 20)
+        try await Task.sleep(nanoseconds: 500_000_000)
+
+        let s = await session.state
+        XCTAssertEqual(s, .recording, "should still be recording with nil autoStopDuration")
+        _ = await session.stop()
+    }
+
+    /// AC4: Manual stop before timer fires → no double-stop; state is .stopped cleanly.
+    func testManualStopCancelsAutoStopTimer() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopDuration: 5.0  // Long enough that we stop manually first
+        )
+
+        try await session.start(config: cfg)
+        await driveBuffers([e], count: 10)
+
+        // Stop manually after ~100 ms (well before the 5 s timer)
+        _ = await session.stop()
+        let s1 = await session.state
+        XCTAssertEqual(s1, .stopped)
+
+        // Wait 200 ms to confirm no re-entry from the timer
+        try await Task.sleep(nanoseconds: 200_000_000)
+        let s2 = await session.state
+        XCTAssertEqual(s2, .stopped, "state should remain .stopped after manual stop cancels timer")
+    }
 }

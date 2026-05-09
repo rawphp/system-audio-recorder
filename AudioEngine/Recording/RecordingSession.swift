@@ -47,17 +47,25 @@ public struct SessionConfig: Sendable {
     public let outputMode: OutputMode
     public let outputFolder: URL
     public let timestamp: String
+    /// When set, `RecordingSession` schedules a `DispatchSourceTimer` that fires
+    /// after this many seconds of *active* recording time and calls `stop()`.
+    /// Pausing cancels the timer; resuming reschedules with the remaining time.
+    /// `nil` (default) means no timer is created. (REQ-021 will later wire this
+    /// from `UserDefaults`; for now it lives only in `SessionConfig`.)
+    public let autoStopDuration: TimeInterval?
 
     public init(
         sources: [Source],
         outputMode: OutputMode,
         outputFolder: URL,
-        timestamp: String
+        timestamp: String,
+        autoStopDuration: TimeInterval? = nil
     ) {
         self.sources = sources
         self.outputMode = outputMode
         self.outputFolder = outputFolder
         self.timestamp = timestamp
+        self.autoStopDuration = autoStopDuration
     }
 }
 
@@ -128,6 +136,17 @@ public actor RecordingSession {
 
     /// URLs returned by the last completed `stop()`. Cached so repeat calls are idempotent.
     private var lastURLs: [URL] = []
+
+    // MARK: - Auto-stop timer (REQ-014)
+
+    /// The total configured auto-stop duration (nil = no auto-stop).
+    private var autoStopDuration: TimeInterval?
+    /// The remaining recording time when the timer was last armed.
+    private var autoStopRemaining: TimeInterval = 0
+    /// The wall-clock date when the current recording segment started (nil = paused/stopped).
+    private var recordingSegmentStart: Date?
+    /// The live `DispatchSourceTimer`. Cancelled on pause / stop.
+    private var autoStopTimer: DispatchSourceProtocol?
 
     // MARK: - Error stream (REQ-033 hand-off)
 
@@ -241,6 +260,13 @@ public actor RecordingSession {
         }
 
         state = .recording
+
+        // Arm the auto-stop timer if configured.
+        if let duration = config.autoStopDuration {
+            autoStopDuration = duration
+            autoStopRemaining = duration
+            armAutoStopTimer(remaining: duration)
+        }
     }
 
     // MARK: - Lifecycle: pause
@@ -251,6 +277,8 @@ public actor RecordingSession {
         guard state == .recording else {
             throw SessionError.invalidTransition(from: state, to: .paused)
         }
+        // Cancel timer before state change; subtract elapsed segment time.
+        cancelAutoStopTimer()
         await writer?.pause()
         state = .paused
     }
@@ -264,6 +292,10 @@ public actor RecordingSession {
         }
         await writer?.resume()
         state = .recording
+        // Re-arm timer with the remaining recording time.
+        if autoStopDuration != nil {
+            armAutoStopTimer(remaining: autoStopRemaining)
+        }
     }
 
     // MARK: - Lifecycle: stop
@@ -277,6 +309,9 @@ public actor RecordingSession {
         guard priorState != .stopped else { return lastURLs }
 
         state = .stopped
+
+        // Cancel auto-stop timer immediately (prevents double-stop from the timer).
+        cancelAutoStopTimer()
 
         // 1) Stop emitters first so their AsyncStreams finish.
         for src in sources { src.emitter.stop() }
@@ -306,9 +341,51 @@ public actor RecordingSession {
         writer = nil
         mixer = nil
         sources = []
+        autoStopDuration = nil
+        autoStopRemaining = 0
+        recordingSegmentStart = nil
 
         lastURLs = urls
         return urls
+    }
+
+    // MARK: - Auto-stop timer helpers (REQ-014)
+
+    /// Arms a `DispatchSourceTimer` that fires after `remaining` seconds and
+    /// calls `stop()` on the actor.
+    ///
+    /// - Note: Must only be called when `state == .recording`.
+    private func armAutoStopTimer(remaining: TimeInterval) {
+        // Cancel any existing timer first (idempotent guard).
+        cancelAutoStopTimer()
+
+        recordingSegmentStart = Date()
+
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        let deadline = DispatchTime.now() + remaining
+        // leeway of 50 ms — acceptable per AC (±0.1 s).
+        timer.schedule(deadline: deadline, leeway: .milliseconds(50))
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            Task { _ = await self.stop() }
+        }
+        timer.resume()
+        autoStopTimer = timer
+    }
+
+    /// Cancels and clears the timer; updates `autoStopRemaining` so a future
+    /// `resume()` can re-arm with the correct remaining time.
+    private func cancelAutoStopTimer() {
+        if let timer = autoStopTimer {
+            timer.cancel()
+            autoStopTimer = nil
+            // Subtract however long we were actively recording in this segment.
+            if let segStart = recordingSegmentStart {
+                let elapsed = Date().timeIntervalSince(segStart)
+                autoStopRemaining = max(0, autoStopRemaining - elapsed)
+            }
+            recordingSegmentStart = nil
+        }
     }
 
     // MARK: - Failure handling
