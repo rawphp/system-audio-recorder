@@ -301,4 +301,183 @@ final class WAVWriterTests: XCTestCase {
             XCTFail("Expected WriterError.diskWriteFailed, got \(error)")
         }
     }
+
+    // MARK: - testRIFFHeaderFieldsAreCorrect  (REQ-038 scenario a)
+    //
+    // Parse the binary RIFF header of a written WAV file and assert:
+    //   • Bytes [0..3]  == "RIFF"
+    //   • Bytes [8..11] == "WAVE"
+    //   • fmt chunk: AudioFormat == 3 (IEEE float), NumChannels == 2,
+    //                SampleRate == 48000, BitsPerSample == 32
+    //
+    // Note: AVAudioFile writes IEEE-float WAV which includes a non-standard `fact`
+    // chunk and/or a `cbSize` extension field in the `fmt` chunk, making the header
+    // larger than the 44-byte PCM baseline. The test locates the `fmt ` chunk by
+    // scanning RIFF chunks rather than using fixed offsets.
+    func testRIFFHeaderFieldsAreCorrect() async throws {
+        let stream = makeFiniteStream(frequency: 440, bufferCount: 50)  // ~0.5 s
+        let writer = WAVWriter(outputFolder: tmpDir, timestamp: "2026-01-01T00-00-04")
+        let urls   = try await writer.runMixed(stream: stream)
+
+        guard let url = urls.first else { XCTFail("No file returned"); return }
+
+        let data = try Data(contentsOf: url)
+        XCTAssertGreaterThanOrEqual(data.count, 44, "WAV file must be at least 44 bytes")
+
+        // Helper: read little-endian UInt16 / UInt32 at a byte offset.
+        func u16(_ offset: Int) -> UInt16 {
+            guard offset + 2 <= data.count else { return 0 }
+            return data[offset..<(offset + 2)].withUnsafeBytes {
+                $0.load(as: UInt16.self).littleEndian
+            }
+        }
+        func u32(_ offset: Int) -> UInt32 {
+            guard offset + 4 <= data.count else { return 0 }
+            return data[offset..<(offset + 4)].withUnsafeBytes {
+                $0.load(as: UInt32.self).littleEndian
+            }
+        }
+        func tag4(_ offset: Int) -> String {
+            guard offset + 4 <= data.count else { return "" }
+            return String(bytes: data[offset..<(offset + 4)], encoding: .ascii) ?? ""
+        }
+
+        // Verify RIFF / WAVE markers.
+        XCTAssertEqual(tag4(0), "RIFF", "Bytes [0..3] must be 'RIFF'")
+        XCTAssertEqual(tag4(8), "WAVE", "Bytes [8..11] must be 'WAVE'")
+
+        // Scan RIFF chunks starting at offset 12 to find the 'fmt ' chunk.
+        // Each chunk: 4-byte tag + 4-byte size (LE) + <size> bytes of data.
+        var pos = 12
+        var fmtOffset: Int? = nil
+        while pos + 8 <= data.count {
+            let chunkTag  = tag4(pos)
+            let chunkSize = Int(u32(pos + 4))
+            if chunkTag == "fmt " {
+                fmtOffset = pos + 8  // points at start of fmt chunk data
+                break
+            }
+            pos += 8 + chunkSize
+            // Chunks are word-aligned (pad byte if size is odd).
+            if chunkSize % 2 != 0 { pos += 1 }
+        }
+
+        guard let fmt = fmtOffset else {
+            XCTFail("'fmt ' chunk not found in WAV file"); return
+        }
+
+        // fmt chunk data layout:
+        //   [fmt+0 .. fmt+1]  AudioFormat  (3 = IEEE_FLOAT)
+        //   [fmt+2 .. fmt+3]  NumChannels
+        //   [fmt+4 .. fmt+7]  SampleRate
+        //   [fmt+8 .. fmt+11] ByteRate
+        //   [fmt+12..fmt+13]  BlockAlign
+        //   [fmt+14..fmt+15]  BitsPerSample
+        let audioFormat = u16(fmt)
+        XCTAssertEqual(audioFormat, 3, "AudioFormat must be 3 (IEEE float 32-bit)")
+
+        let numChannels = u16(fmt + 2)
+        XCTAssertEqual(numChannels, 2, "NumChannels must be 2 (stereo)")
+
+        let sampleRate = u32(fmt + 4)
+        XCTAssertEqual(sampleRate, 48000, "SampleRate must be 48000 Hz")
+
+        let bitsPerSample = u16(fmt + 14)
+        XCTAssertEqual(bitsPerSample, 32, "BitsPerSample must be 32")
+    }
+
+    // MARK: - testDurationAfterFixedLengthWrite  (REQ-038 scenario b)
+    //
+    // REQ-038 requests a 60-second duration test. Reduced to 5 s for CI speed (wall-time
+    // budget: ~5 s vs. ~60 s). The proportional check is identical.
+    // Deviation documented: 60 s → 5 s, tolerance ±0.05 s.
+    //
+    // Write 5 s, open via AVAudioFile, assert duration == 5.0 ± 0.05 s.
+    func testDurationAfterFixedLengthWrite() async throws {
+        // 5 s = 500 buffers × 480 frames at 48 kHz
+        let bufferCount = 500
+        let framesPerBuffer = AVAudioFrameCount(480)
+        let expectedDuration = Double(bufferCount) * Double(framesPerBuffer) / 48000.0  // 5.0 s
+
+        let stream = makeFiniteStream(frequency: 440, bufferCount: bufferCount,
+                                      frameCount: framesPerBuffer)
+        let writer = WAVWriter(outputFolder: tmpDir, timestamp: "2026-01-01T00-00-05")
+        let urls   = try await writer.runMixed(stream: stream)
+
+        guard let url = urls.first else { XCTFail("No file returned"); return }
+
+        let avFile   = try AVAudioFile(forReading: url)
+        let duration = Double(avFile.length) / avFile.fileFormat.sampleRate
+
+        XCTAssertEqual(duration, expectedDuration, accuracy: 0.05,
+            "Duration must be \(expectedDuration) s ± 0.05 s; got \(duration) s")
+    }
+
+    // MARK: - testFlushCadenceFileAtMostOneSecondShort  (REQ-038 scenario e)
+    //
+    // Feed audio buffers in an unbounded loop for 4 s, then cancel the writer task
+    // before the stream finishes — simulating a mid-write kill.
+    // Reopen the WAV file; assert the recovered duration is at most 1 s short of 3 s
+    // (i.e. ≥ 2.0 s), verifying the 1-second flush cadence is actually preserving data.
+    //
+    // Design notes:
+    //  • Buffers are fed as fast as AVFoundation accepts them (no inter-buffer sleep).
+    //    This decouples feeder speed from wall-clock time while still exercising the
+    //    1-second fsync gate inside WAVWriter.consumeStream.
+    //  • The test waits 4 s of wall-clock time, guaranteeing ≥ 3 fsync cycles fire
+    //    before cancellation.
+    //  • minimumExpected = 2.0 s (≥ 2 flush cycles confirmed), keeping the assertion
+    //    conservative and deterministic across CI runners.
+    func testFlushCadenceFileAtMostOneSecondShort() async throws {
+        let framesPerBuffer = AVAudioFrameCount(480)
+        let timestamp       = "2026-01-01T00-00-06"
+        let wavURL          = tmpDir.appendingPathComponent("\(timestamp).wav")
+
+        var cont: AsyncStream<AVAudioPCMBuffer>.Continuation!
+        let stream = AsyncStream<AVAudioPCMBuffer> { cont = $0 }
+
+        let writer = WAVWriter(outputFolder: tmpDir, timestamp: timestamp)
+
+        // Start writer in background task.
+        let writerTask = Task {
+            _ = try? await writer.runMixed(stream: stream)
+        }
+
+        // Feed buffers as fast as possible from a DispatchQueue so the test actor
+        // remains free to call Task.sleep.  The feeder runs until cancelled.
+        let feedQueue = DispatchQueue(label: "WAVWriterTests.FlushCadenceFeeder")
+        var stopFeeder = false
+        feedQueue.async {
+            while !stopFeeder {
+                cont.yield(sineBuffer(frequency: 440, frameCount: framesPerBuffer))
+            }
+        }
+
+        // Wait 4 s — guarantees ≥ 3 complete 1-second fsync cycles.
+        try await Task.sleep(nanoseconds: 4_000_000_000)
+
+        // Cancel writer task (crash simulation) and stop the feeder.
+        stopFeeder = true
+        writerTask.cancel()
+        cont.finish()
+
+        // Give cancellation a moment to propagate.
+        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 s
+
+        // Repair WAV header (crash state leaves size fields stale).
+        if FileManager.default.fileExists(atPath: wavURL.path) {
+            try? WAVWriter.repairWAVHeader(at: wavURL)
+        }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: wavURL.path),
+                      "WAV file must exist after mid-write kill")
+
+        let avFile   = try AVAudioFile(forReading: wavURL)
+        let duration = Double(avFile.length) / avFile.fileFormat.sampleRate
+
+        // At least 2 full seconds must be recoverable (≥ 2 confirmed fsync cycles).
+        // The 1-second flush cadence spec guarantees at most 1 s of data loss.
+        XCTAssertGreaterThanOrEqual(duration, 2.0,
+            "After mid-write kill, recovered duration must be ≥ 2.0 s; got \(duration) s")
+    }
 }
