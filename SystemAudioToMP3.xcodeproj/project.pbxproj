@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04FB2B827881A781906EB07B /* RecordingSessionIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCDCB466BEF6415C98DEA51 /* RecordingSessionIntegrationTests.swift */; };
 		07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */; };
 		0B1629AC78D00A658800821E /* EncodingJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3DB94D6729AA9AFD804069 /* EncodingJobsView.swift */; };
 		0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */; };
@@ -127,6 +128,7 @@
 		9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSourceCatalogTests.swift; sourceTree = "<group>"; };
 		A5435977FAA5DDE373959469 /* PermissionDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionDeepLink.swift; sourceTree = "<group>"; };
 		AE32126E874FFE29F0B9CFD7 /* MixerPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPanelView.swift; sourceTree = "<group>"; };
+		AFCDCB466BEF6415C98DEA51 /* RecordingSessionIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSessionIntegrationTests.swift; sourceTree = "<group>"; };
 		BE2B38634BD218CA684BBA30 /* MixerGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerGraph.swift; sourceTree = "<group>"; };
 		C681A5C225CE19CCE0F91F97 /* LameEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoderTests.swift; sourceTree = "<group>"; };
 		C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
@@ -253,6 +255,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		7D3CCAE87343FAB852D3B3F5 /* IntegrationTests */ = {
+			isa = PBXGroup;
+			children = (
+				AFCDCB466BEF6415C98DEA51 /* RecordingSessionIntegrationTests.swift */,
+			);
+			path = IntegrationTests;
+			sourceTree = "<group>";
+		};
 		8537138CAF073CDA19293D3D /* Capture */ = {
 			isa = PBXGroup;
 			children = (
@@ -318,6 +328,7 @@
 				D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */,
 				DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */,
 				EA6DFA593C674E344FD0B5DE /* Fixtures */,
+				7D3CCAE87343FAB852D3B3F5 /* IntegrationTests */,
 			);
 			path = AudioEngineTests;
 			sourceTree = "<group>";
@@ -538,6 +549,7 @@
 				F1FA46A50509D59548D8A075 /* PermissionManagerTests.swift in Sources */,
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
 				C0099FE2030F718E611DE801 /* RecordControlsViewTests.swift in Sources */,
+				04FB2B827881A781906EB07B /* RecordingSessionIntegrationTests.swift in Sources */,
 				6A5CC80D047842E67F90EAC3 /* RecordingSessionTests.swift in Sources */,
 				7962F5F5C2BA974F11086ABF /* SaveToastTests.swift in Sources */,
 				47ED9DF48C3F0DF74D3D737B /* SourcePickerViewTests.swift in Sources */,
