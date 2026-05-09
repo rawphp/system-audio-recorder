@@ -10,13 +10,20 @@ import Observation
 /// the real encoder.
 @MainActor
 public protocol EncodingQueueObservable: AnyObject {
+    var pending: [EncodingJob] { get }
     var running: [EncodingJob] { get }
     var completed: [EncodingJob] { get }
     var failed: [EncodingJob] { get }
+    /// Cancel all pending and running jobs. Used by `EncodingJobsViewModel.cancel(jobID:)`.
+    func cancelAllJobs() async
 }
 
 // Make the real EncodingQueue conform so it can be used directly.
-extension EncodingQueue: EncodingQueueObservable {}
+extension EncodingQueue: EncodingQueueObservable {
+    public func cancelAllJobs() async {
+        await cancelAll()
+    }
+}
 
 // MARK: - ToastState
 

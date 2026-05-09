@@ -70,6 +70,12 @@ public struct ContentView: View {
     /// Toast view-model — nil until appStore is available.
     @State private var toastVM: SaveToastViewModel? = nil
 
+    /// Encoding jobs view-model — nil until appStore is available.
+    @State private var jobsVM: EncodingJobsViewModel? = nil
+
+    /// Controls the encoding-jobs popover.
+    @State private var showJobsPopover: Bool = false
+
     public init() {}
 
     public var body: some View {
@@ -104,6 +110,29 @@ public struct ContentView: View {
             // ── Level meter placeholder ───────────────────────────────────
             MixLevelMeterView()
 
+            // ── Encoding jobs footer badge (REQ-030) ─────────────────────
+            if let jvm = jobsVM, !jvm.isQueueEmpty {
+                HStack {
+                    Button {
+                        showJobsPopover.toggle()
+                    } label: {
+                        Label(
+                            "\(jvm.runningCount) encoding\(jvm.runningCount == 1 ? "" : "s")…",
+                            systemImage: "waveform.circle"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showJobsPopover, arrowEdge: .bottom) {
+                        EncodingJobsView(viewModel: jvm)
+                            .frame(minWidth: 320)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal)
+            }
+
             Spacer()
                 .frame(height: 4)
         }
@@ -132,6 +161,8 @@ public struct ContentView: View {
                 )
                 // Build SaveToastViewModel wired to the store's encodingQueue.
                 toastVM = SaveToastViewModel(queue: store.encodingQueue)
+                // Build EncodingJobsViewModel wired to the store's encodingQueue.
+                jobsVM = EncodingJobsViewModel(queue: store.encodingQueue)
             }
         }
     }

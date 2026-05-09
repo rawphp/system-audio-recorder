@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */; };
+		0B1629AC78D00A658800821E /* EncodingJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3DB94D6729AA9AFD804069 /* EncodingJobsView.swift */; };
 		0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */; };
 		0E8602AEDBA11A8DA831C60F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */; };
 		10B954A6514CBFBF788B3326 /* MixLevelMeterViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D0A5F90DDDD916E343E6E /* MixLevelMeterViewTests.swift */; };
@@ -34,6 +35,7 @@
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
 		7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */; };
 		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
+		8361D76829BC70B13704954E /* EncodingJobsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C65CC402CA25FB9B797FAD /* EncodingJobsViewTests.swift */; };
 		84FA06CBD542B594DD494622 /* RecordControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5AD176F4CEB52EC3CCE22A /* RecordControlsView.swift */; };
 		85CACA34277B8496F4AA4766 /* SourcePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F054DB47B580A040E918981D /* SourcePickerView.swift */; };
 		8E46FCAB1A9AFF8138672C11 /* MixerPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE32126E874FFE29F0B9CFD7 /* MixerPanelView.swift */; };
@@ -69,10 +71,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01C65CC402CA25FB9B797FAD /* EncodingJobsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingJobsViewTests.swift; sourceTree = "<group>"; };
 		06D9201D3F9A19490B444AD2 /* OutputSettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputSettingsViewTests.swift; sourceTree = "<group>"; };
 		0BE8C3B55431827861378CB2 /* ContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewTests.swift; sourceTree = "<group>"; };
 		1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCapture.swift; sourceTree = "<group>"; };
 		1836DFD74026FFB5AED13075 /* WAVWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriter.swift; sourceTree = "<group>"; };
+		1A3DB94D6729AA9AFD804069 /* EncodingJobsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingJobsView.swift; sourceTree = "<group>"; };
 		1E725D1ADA39F3AFD014FAAB /* MixerPanelViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPanelViewTests.swift; sourceTree = "<group>"; };
 		1EFF361DBFF67097F8220A8F /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
 		22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTapCaptureTests.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 				DAA159C2C5FEAD89C7F41A98 /* AppStoreTests.swift */,
 				9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */,
 				0BE8C3B55431827861378CB2 /* ContentViewTests.swift */,
+				01C65CC402CA25FB9B797FAD /* EncodingJobsViewTests.swift */,
 				3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */,
 				45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */,
 				1EFF361DBFF67097F8220A8F /* HotkeyManagerTests.swift */,
@@ -291,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				400CF837AB2D02454A0D3B72 /* ContentView.swift */,
+				1A3DB94D6729AA9AFD804069 /* EncodingJobsView.swift */,
 				AE32126E874FFE29F0B9CFD7 /* MixerPanelView.swift */,
 				5F11959D4EDAC3D56ADAAA92 /* MixLevelMeterView.swift */,
 				DB0761363B64A2C4F6D21F77 /* OutputSettingsView.swift */,
@@ -421,6 +427,7 @@
 				CDB6B336A798DD524764F410 /* AppStore.swift in Sources */,
 				FF5103791994F34BBFEBC95E /* AudioSourceCatalog.swift in Sources */,
 				CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */,
+				0B1629AC78D00A658800821E /* EncodingJobsView.swift in Sources */,
 				2E859A44DEB18515F4080ADD /* EncodingQueue.swift in Sources */,
 				48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */,
 				2EC82161F2F8B7D2F1467253 /* HotkeyManager.swift in Sources */,
@@ -453,6 +460,7 @@
 				22D91EFBC1FA217D126D7794 /* AppStoreTests.swift in Sources */,
 				B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */,
 				320523902F001F34E9F91BB2 /* ContentViewTests.swift in Sources */,
+				8361D76829BC70B13704954E /* EncodingJobsViewTests.swift in Sources */,
 				0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */,
 				C84B19A234F26028C87F45E6 /* FormatNormalizerTests.swift in Sources */,
 				AF01A2E7039E5AD9FE7863C0 /* HotkeyManagerTests.swift in Sources */,

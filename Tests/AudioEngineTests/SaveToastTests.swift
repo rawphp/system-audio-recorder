@@ -275,6 +275,7 @@ final class SaveToastTests: XCTestCase {
 @Observable
 @MainActor
 final class MockEncodingQueue: EncodingQueueObservable {
+    var pending: [EncodingJob] = []
     var running: [EncodingJob] = []
     var completed: [EncodingJob] = []
     var failed: [EncodingJob] = []
@@ -295,6 +296,11 @@ final class MockEncodingQueue: EncodingQueueObservable {
         var failedJob = job
         failedJob.error = error
         failed.append(failedJob)
+    }
+
+    func cancelAllJobs() async {
+        running.removeAll()
+        pending.removeAll()
     }
 }
 
