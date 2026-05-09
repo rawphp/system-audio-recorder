@@ -294,6 +294,8 @@ final class WAVWriterTests: XCTestCase {
             switch error {
             case .diskWriteFailed:
                 break  // expected
+            case .unrepairableHeader:
+                XCTFail("Expected diskWriteFailed, got unrepairableHeader: \(error)")
             }
         } catch {
             XCTFail("Expected WriterError.diskWriteFailed, got \(error)")
