@@ -53,6 +53,13 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.SystemAudioRecorder
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SystemAudioToMP3.entitlements
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: "Developer ID Application"
+          CODE_SIGN_STYLE: Manual
+          ENABLE_HARDENED_RUNTIME: YES
+          DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+          OTHER_CODE_SIGN_FLAGS: "--timestamp --options runtime"
 
   AudioEngineTests:
     type: bundle.unit-test
