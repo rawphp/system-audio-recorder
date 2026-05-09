@@ -13,8 +13,12 @@
 		321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D2214898D61EE387033CCC /* LameVersionTest.swift */; };
 		48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DDCCD136484A0F6E1E0579 /* FormatNormalizer.swift */; };
 		4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */; };
+		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
+		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
 		AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458596604046914E352942E4 /* ProcessTapCapture.swift */; };
+		B48DDD9A227ABF9CD9E8853C /* MeterTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8B057452AFFA45451A60E0 /* MeterTap.swift */; };
 		B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */; };
+		BADE53E295CC3F29F3ADAE45 /* MeterPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 340C4DC1D733DC0C34B9C343 /* MeterPublisher.swift */; };
 		C84B19A234F26028C87F45E6 /* FormatNormalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */; };
 		CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400CF837AB2D02454A0D3B72 /* ContentView.swift */; };
 		E1DD11C5C2A3C67490604BF2 /* MicrophoneCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */; };
@@ -38,6 +42,8 @@
 		1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCapture.swift; sourceTree = "<group>"; };
 		22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTapCaptureTests.swift; sourceTree = "<group>"; };
 		2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = lame.xcframework; path = Vendor/lame.xcframework; sourceTree = "<group>"; };
+		340C4DC1D733DC0C34B9C343 /* MeterPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterPublisher.swift; sourceTree = "<group>"; };
+		35FAA8038879552EEDA01588 /* LevelMeterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterTests.swift; sourceTree = "<group>"; };
 		400CF837AB2D02454A0D3B72 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		411B9AD6DEDB73CE8CBB0F42 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatNormalizerTests.swift; sourceTree = "<group>"; };
@@ -52,8 +58,10 @@
 		99E9266D32F8840BDAFA64AD /* AudioSourceCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSourceCatalog.swift; sourceTree = "<group>"; };
 		9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSourceCatalogTests.swift; sourceTree = "<group>"; };
 		BE2B38634BD218CA684BBA30 /* MixerGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerGraph.swift; sourceTree = "<group>"; };
+		D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterRingBuffer.swift; sourceTree = "<group>"; };
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		D9D2214898D61EE387033CCC /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
+		EC8B057452AFFA45451A60E0 /* MeterTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterTap.swift; sourceTree = "<group>"; };
 		F7305ECE0C12BDC5984DA297 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureTests.swift; sourceTree = "<group>"; };
 		F9B10AF7B63FD5CD4E48799A /* AudioEngineTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AudioEngineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,6 +94,7 @@
 				F7305ECE0C12BDC5984DA297 /* .gitkeep */,
 				8537138CAF073CDA19293D3D /* Capture */,
 				443A0E4A2BFD9C231667F4DF /* Encoding */,
+				ECCF08E6FCB5DEBBC8726E99 /* Meter */,
 				8820585ABD6E33424FB2C792 /* Mixer */,
 			);
 			path = AudioEngine;
@@ -163,6 +172,7 @@
 			children = (
 				9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */,
 				45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */,
+				35FAA8038879552EEDA01588 /* LevelMeterTests.swift */,
 				F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */,
 				7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */,
 				22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */,
@@ -192,6 +202,16 @@
 				411B9AD6DEDB73CE8CBB0F42 /* .gitkeep */,
 			);
 			path = Permissions;
+			sourceTree = "<group>";
+		};
+		ECCF08E6FCB5DEBBC8726E99 /* Meter */ = {
+			isa = PBXGroup;
+			children = (
+				340C4DC1D733DC0C34B9C343 /* MeterPublisher.swift */,
+				D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */,
+				EC8B057452AFFA45451A60E0 /* MeterTap.swift */,
+			);
+			path = Meter;
 			sourceTree = "<group>";
 		};
 		F9A0CF4899C6FDC524E4AA30 /* Resources */ = {
@@ -295,6 +315,9 @@
 				CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */,
 				48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */,
 				321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */,
+				BADE53E295CC3F29F3ADAE45 /* MeterPublisher.swift in Sources */,
+				7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */,
+				B48DDD9A227ABF9CD9E8853C /* MeterTap.swift in Sources */,
 				EA3FE9E45B41C3C16F8BF1E3 /* MicrophoneCapture.swift in Sources */,
 				FC5D28F6E148660A122C45F6 /* MixerGraph.swift in Sources */,
 				AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */,
@@ -308,6 +331,7 @@
 			files = (
 				B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */,
 				C84B19A234F26028C87F45E6 /* FormatNormalizerTests.swift in Sources */,
+				8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */,
 				E1DD11C5C2A3C67490604BF2 /* MicrophoneCaptureTests.swift in Sources */,
 				07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */,
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
