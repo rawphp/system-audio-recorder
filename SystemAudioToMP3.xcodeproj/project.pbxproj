@@ -8,9 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */; };
+		0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */; };
 		0E8602AEDBA11A8DA831C60F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */; };
 		188E9C67477AC7F65CC41251 /* lame.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */; };
 		1F9722935AF827FB75B81230 /* WAVWriterRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */; };
+		2E859A44DEB18515F4080ADD /* EncodingQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = D274654D7BDCC37DD4E742B2 /* EncodingQueue.swift */; };
 		307DAA04B3DA7A5B6DF33ECA /* LameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */; };
 		321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D2214898D61EE387033CCC /* LameVersionTest.swift */; };
 		48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DDCCD136484A0F6E1E0579 /* FormatNormalizer.swift */; };
@@ -52,6 +54,7 @@
 		2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = lame.xcframework; path = Vendor/lame.xcframework; sourceTree = "<group>"; };
 		340C4DC1D733DC0C34B9C343 /* MeterPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterPublisher.swift; sourceTree = "<group>"; };
 		35FAA8038879552EEDA01588 /* LevelMeterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelMeterTests.swift; sourceTree = "<group>"; };
+		3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingQueueTests.swift; sourceTree = "<group>"; };
 		400CF837AB2D02454A0D3B72 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		411B9AD6DEDB73CE8CBB0F42 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatNormalizerTests.swift; sourceTree = "<group>"; };
@@ -72,6 +75,7 @@
 		C681A5C225CE19CCE0F91F97 /* LameEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoderTests.swift; sourceTree = "<group>"; };
 		D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterRingBuffer.swift; sourceTree = "<group>"; };
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		D274654D7BDCC37DD4E742B2 /* EncodingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingQueue.swift; sourceTree = "<group>"; };
 		D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterRecoveryTests.swift; sourceTree = "<group>"; };
 		D9D2214898D61EE387033CCC /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
 		DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterTests.swift; sourceTree = "<group>"; };
@@ -136,6 +140,7 @@
 		443A0E4A2BFD9C231667F4DF /* Encoding */ = {
 			isa = PBXGroup;
 			children = (
+				D274654D7BDCC37DD4E742B2 /* EncodingQueue.swift */,
 				7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */,
 				D9D2214898D61EE387033CCC /* LameVersionTest.swift */,
 			);
@@ -196,6 +201,7 @@
 			isa = PBXGroup;
 			children = (
 				9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */,
+				3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */,
 				45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */,
 				C681A5C225CE19CCE0F91F97 /* LameEncoderTests.swift */,
 				35FAA8038879552EEDA01588 /* LevelMeterTests.swift */,
@@ -342,6 +348,7 @@
 			files = (
 				FF5103791994F34BBFEBC95E /* AudioSourceCatalog.swift in Sources */,
 				CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */,
+				2E859A44DEB18515F4080ADD /* EncodingQueue.swift in Sources */,
 				48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */,
 				307DAA04B3DA7A5B6DF33ECA /* LameEncoder.swift in Sources */,
 				321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */,
@@ -362,6 +369,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */,
+				0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */,
 				C84B19A234F26028C87F45E6 /* FormatNormalizerTests.swift in Sources */,
 				9492ACE5C7C16660429CF055 /* LameEncoderTests.swift in Sources */,
 				8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */,
