@@ -153,9 +153,7 @@ public final class SourcePickerViewModel {
     // MARK: - Open System Settings for microphone
 
     public func openMicrophoneSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-            NSWorkspace.shared.open(url)
-        }
+        NSWorkspace.shared.open(PermissionDeepLink.microphoneSettingsURL)
     }
 
     // MARK: - Display label for current selection

@@ -23,12 +23,12 @@ public enum SystemSettingsPane: Equatable, Sendable {
     case screenRecording
 
     /// The `x-apple.systempreferences:` URL for this pane.
+    ///
+    /// Delegates to `PermissionDeepLink` — the canonical source of deep-link URLs (REQ-034).
     public var url: URL {
         switch self {
-        case .microphone:
-            return URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
-        case .screenRecording:
-            return URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+        case .microphone:      return PermissionDeepLink.microphoneSettingsURL
+        case .screenRecording: return PermissionDeepLink.screenRecordingSettingsURL
         }
     }
 }
@@ -128,6 +128,15 @@ public final class ErrorSurface {
         await MainActor.run {
             self.route(error, severity: severity)
         }
+    }
+
+    /// Present a fully-custom modal alert, bypassing the standard error-mapping path.
+    ///
+    /// Use this when the caller has already constructed an `AppAlert` with bespoke
+    /// button labels and actions (e.g. the MDM tap-block alert in REQ-034 that
+    /// offers "Switch to mic-only" rather than the generic "Try Again").
+    public func reportCustomAlert(_ alert: AppAlert) {
+        currentAlert = alert
     }
 
     /// Dismiss a banner by its identifier.

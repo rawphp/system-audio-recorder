@@ -245,6 +245,10 @@ public final class AppStore {
     /// Start a new recording session with the given preset. Persists the preset
     /// to settings, builds a `SessionConfig` via the injected builder, and
     /// flips `sessionState` to `.recording` synchronously on success.
+    ///
+    /// On `CaptureError.tapCreationFailed` (MDM / policy denial), surfaces a
+    /// fatal alert via `errorSurface` with "Switch to mic-only" + "Quit" buttons
+    /// instead of a generic error banner (REQ-034).
     public func startRecording(preset: SourcePreset) async {
         guard sessionState == .idle || sessionState == .stopped || sessionState == .failed else {
             return
@@ -257,6 +261,7 @@ public final class AppStore {
             config = try sessionConfigBuilder.build(preset: preset, settings: settings)
         } catch {
             lastError = error
+            await routeSessionStartError(error)
             return
         }
 
@@ -272,6 +277,27 @@ public final class AppStore {
             lastError = error
             currentSession = nil
             sessionState = .idle
+            await routeSessionStartError(error)
+        }
+    }
+
+    /// Translate session-start errors into the appropriate `errorSurface` report.
+    ///
+    /// `CaptureError.tapCreationFailed` is treated as an MDM / policy tap block and
+    /// surfaces a **fatal** alert offering a mic-only fallback or a quit option.
+    /// All other errors are delegated to `ErrorSurface.report(_:severity:)`.
+    private func routeSessionStartError(_ error: Error) async {
+        if case CaptureError.tapCreationFailed = error {
+            // MDM / policy denial of process-tap APIs → offer fallback.
+            errorSurface.reportCustomAlert(AppAlert(
+                title: "Audio Tap Blocked",
+                message: "System policy (MDM) prevents audio tap creation. You can record microphone-only audio instead.",
+                primaryButton: "Switch to mic-only",
+                secondaryButton: "Quit",
+                secondaryAction: nil
+            ))
+        } else {
+            await errorSurface.report(error, severity: .nonFatal)
         }
     }
 
