@@ -20,6 +20,11 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
     GCC_TREAT_WARNINGS_AS_ERRORS: NO
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "2.0.0"
+
 targets:
   SystemAudioToMP3:
     type: application
@@ -36,6 +41,8 @@ targets:
         optional: true
       - path: Vendor
         optional: true
+    dependencies:
+      - package: KeyboardShortcuts
     settings:
       base:
         PRODUCT_NAME: SystemAudioToMP3

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E8602AEDBA11A8DA831C60F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */; };
 		CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400CF837AB2D02454A0D3B72 /* ContentView.swift */; };
 		F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA0AC7E833BEEEDAB32476 /* SystemAudioToMP3App.swift */; };
 /* End PBXBuildFile section */
@@ -21,6 +22,17 @@
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		F7305ECE0C12BDC5984DA297 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AF4349C1B4115D3911761A8C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0E8602AEDBA11A8DA831C60F /* KeyboardShortcuts in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0DFB3F06198B337164A555E9 /* Hotkey */ = {
@@ -109,6 +121,7 @@
 			buildConfigurationList = 54C66637F5968E21FD2F903B /* Build configuration list for PBXNativeTarget "SystemAudioToMP3" */;
 			buildPhases = (
 				64B37E29392DB3B830868824 /* Sources */,
+				AF4349C1B4115D3911761A8C /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -116,6 +129,7 @@
 			);
 			name = SystemAudioToMP3;
 			packageProductDependencies = (
+				42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */,
 			);
 			productName = SystemAudioToMP3;
 			productReference = 5A53E036CF32036C7B423296 /* SystemAudioToMP3.app */;
@@ -145,6 +159,9 @@
 			);
 			mainGroup = 89362D6DE99663432A2A1571;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FD63B7844C9277BEEE133A7C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1F1C64756223B774B315EA30 /* Products */;
 			projectDirPath = "";
@@ -362,6 +379,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FD63B7844C9277BEEE133A7C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FD63B7844C9277BEEE133A7C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8DC3750AFDD0576D80D752C8 /* Project object */;
 }
