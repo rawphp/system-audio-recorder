@@ -18,17 +18,27 @@ struct SystemAudioRecorderApp: App {
             ContentView()
                 .environment(\.appStore, appStore)
                 .onAppear {
-                    if menuBarController == nil {
-                        let renderer = NSStatusItemRenderer()
-                        let controller = MenuBarController(store: appStore, renderer: renderer)
-                        menuBarController = controller
-                        controller.start()
-                    }
+                    // Defer to the next runloop tick so SwiftUI's first layout
+                    // pass for this WindowGroup has completed. NSStatusItem
+                    // creation and NSApp.setActivationPolicy(_:) both mutate
+                    // window-server state and, if invoked synchronously inside
+                    // .onAppear, can re-enter layout on the view currently
+                    // being laid out (logs: "It's not legal to call
+                    // -layoutSubtreeIfNeeded on a view which is already being
+                    // laid out").
+                    DispatchQueue.main.async {
+                        if menuBarController == nil {
+                            let renderer = NSStatusItemRenderer()
+                            let controller = MenuBarController(store: appStore, renderer: renderer)
+                            menuBarController = controller
+                            controller.start()
+                        }
 
-                    if dockPolicyController == nil {
-                        let controller = DockPolicyController(settings: appStore.settings)
-                        dockPolicyController = controller
-                        controller.start()
+                        if dockPolicyController == nil {
+                            let controller = DockPolicyController(settings: appStore.settings)
+                            dockPolicyController = controller
+                            controller.start()
+                        }
                     }
                 }
         }

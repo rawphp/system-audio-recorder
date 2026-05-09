@@ -68,9 +68,17 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
     public enum BuilderError: Error, Equatable {
         case noOutputFolder
         case unsupportedPreset
+        case noAudibleProcesses
     }
 
-    public init() {}
+    private let catalog: AudioSourceCatalog?
+
+    /// - Parameter catalog: Optional shared `AudioSourceCatalog`. When provided,
+    ///   `.everything` taps every pid currently listed by the catalog. When `nil`
+    ///   (e.g. older test wiring), the builder refreshes a private catalog.
+    public init(catalog: AudioSourceCatalog? = nil) {
+        self.catalog = catalog
+    }
 
     public func build(preset: SourcePreset, settings: AppSettings) throws -> SessionConfig {
         // Resolve output folder from settings; create the default if needed.
@@ -91,11 +99,28 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
             sources.append(SessionConfig.Source(id: "mic", emitter: emitter))
 
         case .everything:
-            // For v1 ".everything" maps to tapping every pid in the catalog.
-            // Wider catalog → emitter wiring is out-of-scope for REQ-022; the
-            // production builder rejects it for now and will be extended by a
-            // later UI/wiring REQ.
-            throw BuilderError.unsupportedPreset
+            // Tap every audio-emitting process the catalog currently knows about.
+            // Filtering (no coreaudiod, must have bundle id) is handled by
+            // AudioSourceCatalog.refresh().
+            let activeCatalog = catalog ?? AudioSourceCatalog()
+            activeCatalog.refresh()
+            let pids = activeCatalog.processes.map(\.pid)
+
+            guard !pids.isEmpty else {
+                throw BuilderError.noAudibleProcesses
+            }
+
+            let capture = try ProcessTapCapture(pids: pids)
+            for pid in pids {
+                guard let emitter = ProcessTapSourceEmitter(
+                    id: "app:\(pid)",
+                    capture: capture,
+                    pid: pid
+                ) else {
+                    continue
+                }
+                sources.append(SessionConfig.Source(id: "app:\(pid)", emitter: emitter))
+            }
 
         case .specificApp(let pid):
             let capture = try ProcessTapCapture(pids: [pid])
@@ -212,13 +237,14 @@ public final class AppStore {
 
     /// Convenience production initialiser — wires the default subsystems together.
     public convenience init() {
+        let catalog = AudioSourceCatalog()
         self.init(
             settings: AppSettings(),
-            sourceCatalog: AudioSourceCatalog(),
+            sourceCatalog: catalog,
             permissionManager: PermissionManager(),
             encodingQueue: EncodingQueue(),
             meters: MeterPublisher(),
-            sessionConfigBuilder: DefaultSessionConfigBuilder()
+            sessionConfigBuilder: DefaultSessionConfigBuilder(catalog: catalog)
         )
     }
 

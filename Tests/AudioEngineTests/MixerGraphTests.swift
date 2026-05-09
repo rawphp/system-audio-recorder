@@ -447,6 +447,50 @@ final class MixerGraphTests: XCTestCase {
         XCTAssertEqual(count, 0, "Unknown source stream should immediately finish")
     }
 
+    // MARK: testMixBusIsTimeAlignedNotConcatenated
+    //
+    // BUG REGRESSION: With N concurrent sources, the mix bus must yield buffers
+    // representing the sample-aligned SUM across sources, not the concatenation
+    // of all source buffers. Two real-time sources, each producing 50 × 480
+    // frames (~500 ms wall-clock), should produce ~24k frames on the mix bus
+    // (one stream's worth, summed) — NOT ~48k (concatenation).
+    //
+    // Concatenation manifested as: 5 s of recording → 5 min of MP3 with
+    // ~60 process taps under the `.everything` preset.
+    func testMixBusIsTimeAlignedNotConcatenated() async throws {
+        let mixer = MixerGraph()
+        defer { mixer.stop() }
+
+        // Two finite sources, each producing exactly 50 × 480 frames
+        // (= 24 000 frames per source) over ~500 ms wall-clock.
+        let s1 = makeFiniteStream(frequency: 440, bufferCount: 50)
+        let s2 = makeFiniteStream(frequency: 880, bufferCount: 50)
+
+        try mixer.addSource(id: "src1", stream: s1)
+        try mixer.addSource(id: "src2", stream: s2)
+
+        let mixStream = mixer.mixBufferStream()
+
+        // Stop the mixer after 1.5 s so the mix-bus AsyncStream terminates and
+        // the for-await loop exits even when no source streams remain.
+        let stopTask = Task { [mixer] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            mixer.stop()
+        }
+        defer { stopTask.cancel() }
+
+        var totalFrames = 0
+        for await buf in mixStream {
+            totalFrames += Int(buf.frameLength)
+            if totalFrames > 60_000 { break }
+        }
+
+        // Sample-aligned mix: ≈24 000 frames (one wall-clock interval).
+        // Concatenation bug:    ≈48 000 frames (both intervals concatenated).
+        XCTAssertLessThanOrEqual(totalFrames, 30_000,
+            "Mix bus must sample-align across sources, not concatenate. Got \(totalFrames) frames; expected ≤30 000.")
+    }
+
     // MARK: testStopIsIdempotent
     //
     // Calling `stop()` multiple times must not crash.
