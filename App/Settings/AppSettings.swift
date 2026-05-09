@@ -177,6 +177,9 @@ public final class AppSettings {
         public static let showInDock             = "showInDock"
         public static let autoStopDurationSeconds = "autoStopDurationSeconds"
         public static let autoStopSilenceSeconds  = "autoStopSilenceSeconds"
+        // v2 keys (REQ-028: Advanced mixer panel)
+        public static let advancedSourceIDs      = "advancedSourceIDs"
+        public static let advancedGains          = "advancedGains"
     }
 
     // MARK: - Private storage
@@ -295,6 +298,39 @@ public final class AppSettings {
             } else {
                 defaults.removeObject(forKey: Keys.autoStopSilenceSeconds)
             }
+        }
+    }
+
+    // MARK: - v2 Advanced mixer settings (REQ-028)
+
+    /// Source IDs selected in the Advanced mixer panel. Default: [].
+    ///
+    /// Elements are the string IDs used by `MixerPanelViewModel` rows:
+    /// - Process rows: `"pid:<pid>"` (e.g. `"pid:12345"`)
+    /// - Microphone row: `"mic"`
+    public var advancedSourceIDs: [String] {
+        get { defaults.stringArray(forKey: Keys.advancedSourceIDs) ?? [] }
+        set { defaults.set(newValue, forKey: Keys.advancedSourceIDs) }
+    }
+
+    /// Per-source gain values for the Advanced mixer panel.
+    /// Keys are source IDs (same convention as `advancedSourceIDs`).
+    /// Default: [:] (empty dictionary — UI shows 1.0 via view model).
+    public var advancedGains: [String: Float] {
+        get {
+            guard let raw = defaults.dictionary(forKey: Keys.advancedGains) else { return [:] }
+            var result: [String: Float] = [:]
+            for (key, value) in raw {
+                if let f = value as? Float { result[key] = f }
+                else if let d = value as? Double { result[key] = Float(d) }
+                else if let n = value as? NSNumber { result[key] = n.floatValue }
+            }
+            return result
+        }
+        set {
+            // Store as [String: Double] for UserDefaults compatibility.
+            let asDouble = newValue.mapValues { Double($0) }
+            defaults.set(asDouble, forKey: Keys.advancedGains)
         }
     }
 

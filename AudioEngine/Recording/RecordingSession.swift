@@ -185,6 +185,22 @@ public actor RecordingSession {
         self.errorContinuation = c
     }
 
+    // MARK: - Live gain (REQ-028)
+
+    /// Forwards a gain change to the underlying `MixerGraph` immediately.
+    ///
+    /// Called by `MixerPanelViewModel.setGain(forID:to:)` during an active
+    /// recording. The gain change propagates within one audio buffer (~10 ms)
+    /// as guaranteed by REQ-010.
+    ///
+    /// - Parameters:
+    ///   - sourceID: The source's stable ID string (e.g. `"pid:12345"` or `"mic"`).
+    ///   - gain:     Linear gain in 0.0 – 2.0. Values outside the range are clamped
+    ///               by `MixerGraph.setGain`.
+    public func setGain(forSource sourceID: String, gain: Float) {
+        mixer?.setGain(forSource: sourceID, gain: gain)
+    }
+
     // MARK: - Lifecycle: start
 
     /// Starts a recording session.

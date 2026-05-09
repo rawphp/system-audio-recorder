@@ -180,26 +180,6 @@ public final class SourcePickerViewModel {
     }
 }
 
-// MARK: - MixerPanelView (REQ-028 stub)
-
-/// Placeholder for the mixer panel — REQ-028 will replace this.
-public struct MixerPanelView: View {
-    @Binding var isPresented: Bool
-
-    public var body: some View {
-        VStack(spacing: 16) {
-            Text("Mixer Panel \u{2014} REQ-028")
-                .font(.headline)
-            Text("Advanced mix controls coming in REQ-028.")
-                .foregroundStyle(.secondary)
-            Button("Done") { isPresented = false }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(24)
-        .frame(minWidth: 320)
-    }
-}
-
 // MARK: - AppPickerView (inline app selector)
 
 /// Minimal app picker: lists catalog processes and lets the user pick one.
