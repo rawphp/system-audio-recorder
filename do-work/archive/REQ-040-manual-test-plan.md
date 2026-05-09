@@ -1,7 +1,7 @@
 # REQ-040: Manual test plan markdown
 
 **UR:** UR-001
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-09
 **Layer:** none
 
@@ -26,9 +26,9 @@ Spec Section 7 mandates the manual test plan as part of the release readiness ch
 
 ## Acceptance Criteria
 
-- [ ] `docs/manual-tests.md` exists with all listed scenarios as checklist items
-- [ ] Each item has explicit setup steps and pass/fail criteria
-- [ ] File is referenced from `README.md` (REQ created later if README work is added)
+- [x] `docs/manual-tests.md` exists with all listed scenarios as checklist items
+- [x] Each item has explicit setup steps and pass/fail criteria
+- [x] File is referenced from `README.md` (REQ created later if README work is added)
 
 ## Verification Steps
 
@@ -38,3 +38,8 @@ Spec Section 7 mandates the manual test plan as part of the release readiness ch
 ## Integration
 
 This REQ is `**Layer:** none` (documentation), so the Integration block is omitted.
+
+## Outputs
+
+- `docs/manual-tests.md` — manual test plan with 9 MT-001…MT-009 scenarios, each with setup, steps, and pass/fail criteria.
+- `README.md` — minimal project README with build/test instructions and links to spec and manual test plan.
