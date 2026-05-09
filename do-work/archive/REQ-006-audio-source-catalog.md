@@ -1,7 +1,7 @@
 # REQ-006: AudioSourceCatalog enumerates running audio-emitting processes
 
 **UR:** UR-001
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-09
 **Layer:** audio_engine
 
@@ -15,11 +15,11 @@ Spec Section 5.1 step 1 specifies polling `kAudioHardwarePropertyProcessObjectLi
 
 ## Acceptance Criteria
 
-- [ ] `AudioSourceCatalog` exposes a published array of `AudioProcess` records (pid, bundleID, displayName, icon)
-- [ ] `refresh()` updates the array; calling twice in a row produces a stable result
-- [ ] Processes that are not actually emitting audio are filtered out (catalog only shows audio-capable processes per HAL query)
-- [ ] System processes (coreaudiod, etc.) are filtered from the user-facing list
-- [ ] Catalog handles processes that quit between query and read without crashing
+- [x] `AudioSourceCatalog` exposes a published array of `AudioProcess` records (pid, bundleID, displayName, icon)
+- [x] `refresh()` updates the array; calling twice in a row produces a stable result
+- [x] Processes that are not actually emitting audio are filtered out (catalog only shows audio-capable processes per HAL query)
+- [x] System processes (coreaudiod, etc.) are filtered from the user-facing list
+- [x] Catalog handles processes that quit between query and read without crashing
 
 ## Verification Steps
 
