@@ -33,24 +33,6 @@ public final class ContentViewModel {
 
 // MixLevelMeterView is now defined in App/Views/MixLevelMeterView.swift (REQ-026).
 
-/// Placeholder for the output-settings sheet (REQ-029 replaces this).
-// TODO: REQ-029 replaces this
-struct OutputSettingsView: View {
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Output Settings")
-                .font(.headline)
-            Text("Settings UI coming in REQ-029.")
-                .foregroundStyle(.secondary)
-            Button("Done") { isPresented = false }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(24)
-        .frame(minWidth: 320)
-    }
-}
 
 // MARK: - ContentView
 
@@ -126,10 +108,11 @@ public struct ContentView: View {
                 .frame(height: 4)
         }
         .frame(width: 480, height: 320)
-        // Sheet: OutputSettingsView (REQ-029 replaces placeholder)
+        // Sheet: OutputSettingsView (REQ-029)
         .sheet(isPresented: $viewModel.showSettings) {
-            OutputSettingsView(isPresented: $viewModel.showSettings)
-                // TODO: REQ-029 replaces OutputSettingsView placeholder
+            if let store = appStore {
+                OutputSettingsView(isPresented: $viewModel.showSettings, settings: store.settings)
+            }
         }
         // Post-stop toast (REQ-027) — overlaid at the bottom of the window.
         .overlay(alignment: .bottom) {
