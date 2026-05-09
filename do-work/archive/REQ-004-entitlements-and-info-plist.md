@@ -7,7 +7,7 @@
 
 ## Task
 
-Author `Resources/SystemAudioToMP3.entitlements` enabling: `com.apple.security.device.audio-input` (microphone), `com.apple.security.app-sandbox` set to `false` (notarized direct download, no sandbox per spec Section 2). Add Info.plist usage descriptions: `NSMicrophoneUsageDescription` and `NSAudioCaptureUsageDescription`.
+Author `Resources/SystemAudioRecorder.entitlements` enabling: `com.apple.security.device.audio-input` (microphone), `com.apple.security.app-sandbox` set to `false` (notarized direct download, no sandbox per spec Section 2). Add Info.plist usage descriptions: `NSMicrophoneUsageDescription` and `NSAudioCaptureUsageDescription`.
 
 ## Context
 
@@ -15,7 +15,7 @@ Spec Section 5.8 calls out the audio-tap entitlement prompt wording. Spec Sectio
 
 ## Acceptance Criteria
 
-- [x] `Resources/SystemAudioToMP3.entitlements` exists, no sandbox, audio-input entitlement enabled
+- [x] `Resources/SystemAudioRecorder.entitlements` exists, no sandbox, audio-input entitlement enabled
 - [x] `Info.plist` contains `NSMicrophoneUsageDescription` with human-readable text ("System Audio Recorder needs your microphone to mix it into recordings.")
 - [x] `Info.plist` contains `NSAudioCaptureUsageDescription` with human-readable text ("System Audio Recorder records audio from other apps you choose.")
 - [x] App target's "Code Sign Entitlements" build setting points to the entitlements file

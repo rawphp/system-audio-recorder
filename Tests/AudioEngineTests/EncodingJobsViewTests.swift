@@ -1,5 +1,5 @@
 import XCTest
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - EncodingJobsViewTests
 

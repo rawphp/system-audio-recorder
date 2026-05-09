@@ -15,8 +15,8 @@ Spec Section 2 commits to notarized direct-download distribution. The DMG is the
 ## Acceptance Criteria
 
 - [x] `scripts/release.sh` exists and runs end-to-end on a clean macOS-14 environment with proper credentials — script created, syntax verified (`bash -n`), made executable; end-to-end runtime deferred (missing creds) [^1]
-- [x] Output is `dist/SystemAudioToMP3-<version>.dmg`, notarized and stapled — script produces this path; notarization + staple deferred (missing creds) [^1]
-- [x] `spctl -a -vv -t install dist/SystemAudioToMP3-<version>.dmg` reports "accepted" with origin "Notarized Developer ID" — step encoded in script; runtime verification deferred (missing creds) [^1]
+- [x] Output is `dist/SystemAudioRecorder-<version>.dmg`, notarized and stapled — script produces this path; notarization + staple deferred (missing creds) [^1]
+- [x] `spctl -a -vv -t install dist/SystemAudioRecorder-<version>.dmg` reports "accepted" with origin "Notarized Developer ID" — step encoded in script; runtime verification deferred (missing creds) [^1]
 - [x] DMG layout shows the app with an Applications symlink for drag-to-install — `create-dmg` called with `--app-drop-link`; `ln -s /Applications` in staging dir
 - [x] Script reads version from a single source (e.g. `Info.plist` `CFBundleShortVersionString`) — `plutil -extract CFBundleShortVersionString raw` reads from `Resources/Info.plist`; `CFBundleShortVersionString: 1.0.0` added to Info.plist
 - [x] README documents the prerequisites: Apple Developer account, `notarytool store-credentials` setup, `create-dmg` installed via brew — Release section added to README.md

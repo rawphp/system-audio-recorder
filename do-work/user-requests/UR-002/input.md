@@ -8,32 +8,32 @@ status: intake
 
 ## Request
 
-Runtime errors observed when launching the freshly-built `SystemAudioToMP3.app`:
+Runtime errors observed when launching the freshly-built `SystemAudioRecorder.app`:
 
 ```
 Cannot index window tabs due to missing main bundle identifier
-Type: Error | Timestamp: 2026-05-10 08:34:35.900052+10:00 | Process: SystemAudioToMP3 | Library: AppKit | Subsystem: com.apple.AppKit | Category: WindowTab | TID: 0x3937c4d
+Type: Error | Timestamp: 2026-05-10 08:34:35.900052+10:00 | Process: SystemAudioRecorder | Library: AppKit | Subsystem: com.apple.AppKit | Category: WindowTab | TID: 0x3937c4d
 
 No symbol named '' found in system symbol set
-Type: Fault | Timestamp: 2026-05-10 08:34:38.786132+10:00 | Process: SystemAudioToMP3 | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
+Type: Fault | Timestamp: 2026-05-10 08:34:38.786132+10:00 | Process: SystemAudioRecorder | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
 
 No symbol named '' found in system symbol set
-Type: Fault | Timestamp: 2026-05-10 08:34:38.786627+10:00 | Process: SystemAudioToMP3 | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
+Type: Fault | Timestamp: 2026-05-10 08:34:38.786627+10:00 | Process: SystemAudioRecorder | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
 
 No symbol named '' found in system symbol set
-Type: Fault | Timestamp: 2026-05-10 08:34:38.786993+10:00 | Process: SystemAudioToMP3 | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
+Type: Fault | Timestamp: 2026-05-10 08:34:38.786993+10:00 | Process: SystemAudioRecorder | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
 
 No symbol named '' found in system symbol set
-Type: Fault | Timestamp: 2026-05-10 08:34:38.787042+10:00 | Process: SystemAudioToMP3 | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
+Type: Fault | Timestamp: 2026-05-10 08:34:38.787042+10:00 | Process: SystemAudioRecorder | Library: SwiftUICore | Subsystem: com.apple.SwiftUI | Category: Invalid Configuration | TID: 0x3937c4d
 
 Unable to obtain a task name port right for pid 391: (os/kern) failure (0x5)
-Type: Error | Timestamp: 2026-05-10 08:34:39.580461+10:00 | Process: SystemAudioToMP3 | Library: BaseBoard | Subsystem: com.apple.BaseBoard | Category: Common | TID: 0x3937fa1
+Type: Error | Timestamp: 2026-05-10 08:34:39.580461+10:00 | Process: SystemAudioRecorder | Library: BaseBoard | Subsystem: com.apple.BaseBoard | Category: Common | TID: 0x3937fa1
 
 cannot open file at line 51043 of [f0ca7bba1c]
-Type: Error | Timestamp: 2026-05-10 08:34:40.007177+10:00 | Process: SystemAudioToMP3 | Library: libsqlite3.dylib | Subsystem: com.apple.libsqlite3 | Category: logging-persist | TID: 0x3937c4d
+Type: Error | Timestamp: 2026-05-10 08:34:40.007177+10:00 | Process: SystemAudioRecorder | Library: libsqlite3.dylib | Subsystem: com.apple.libsqlite3 | Category: logging-persist | TID: 0x3937c4d
 
 os_unix.c:51043: (2) open(/private/var/db/DetachedSignatures) - No such file or directory
-Type: Error | Timestamp: 2026-05-10 08:34:40.007192+10:00 | Process: SystemAudioToMP3 | Library: libsqlite3.dylib | Subsystem: com.apple.libsqlite3 | Category: logging-persist | TID: 0x3937c4d
+Type: Error | Timestamp: 2026-05-10 08:34:40.007192+10:00 | Process: SystemAudioRecorder | Library: libsqlite3.dylib | Subsystem: com.apple.libsqlite3 | Category: logging-persist | TID: 0x3937c4d
 ```
 
 Observed after the UR-001 build completed and the user launched the app for the first time.

@@ -65,7 +65,7 @@ public final class DockPolicyController {
 
     /// Apply the current `showInDock` value and begin observing future changes.
     ///
-    /// Call once from `.onAppear` in `SystemAudioToMP3App`. The recursive
+    /// Call once from `.onAppear` in `SystemAudioRecorderApp`. The recursive
     /// `withObservationTracking` loop re-runs `apply()` whenever
     /// `settings.showInDock` changes.
     public func start() {

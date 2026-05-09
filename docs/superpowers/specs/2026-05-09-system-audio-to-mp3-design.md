@@ -280,7 +280,7 @@ CI: GitHub Actions, macOS-14 runner, layers 1 & 2 on every push. Layer 3 gated b
 ```
 system-audio-to-mp3/
 ├── App/
-│   ├── SystemAudioToMP3App.swift      # SwiftUI @main
+│   ├── SystemAudioRecorderApp.swift      # SwiftUI @main
 │   ├── AppStore.swift                 # @Observable top-level state
 │   ├── MenuBar/
 │   │   └── MenuBarController.swift    # NSStatusItem + dropdown menu
@@ -310,7 +310,7 @@ system-audio-to-mp3/
 │   └── HotkeyManager.swift
 ├── Resources/
 │   ├── Info.plist
-│   ├── SystemAudioToMP3.entitlements
+│   ├── SystemAudioRecorder.entitlements
 │   └── Assets.xcassets
 ├── Vendor/
 │   └── lame.xcframework/              # Bundled libmp3lame
@@ -321,7 +321,7 @@ system-audio-to-mp3/
 │   ├── superpowers/specs/             # This spec
 │   └── manual-tests.md
 ├── Package.swift                      # SPM: KeyboardShortcuts
-└── SystemAudioToMP3.xcodeproj
+└── SystemAudioRecorder.xcodeproj
 ```
 
 ---

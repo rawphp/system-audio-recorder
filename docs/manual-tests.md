@@ -145,8 +145,8 @@
 
 1. Delete any existing System Audio to MP3 consent records:
    ```
-   tccutil reset Microphone com.yourcompany.SystemAudioToMP3
-   tccutil reset ListenEvent com.yourcompany.SystemAudioToMP3
+   tccutil reset Microphone com.yourcompany.SystemAudioRecorder
+   tccutil reset ListenEvent com.yourcompany.SystemAudioRecorder
    ```
    *(Replace bundle ID with the actual bundle identifier in the signed build's Info.plist.)*
 2. Quit and relaunch the app from Finder.
@@ -193,7 +193,7 @@
 
 1. Reset mic permission for the app:
    ```
-   tccutil reset Microphone com.yourcompany.SystemAudioToMP3
+   tccutil reset Microphone com.yourcompany.SystemAudioRecorder
    ```
 2. Relaunch the app.
 3. In the source dropdown, select **Everything + Mic**.
@@ -358,24 +358,24 @@
 
 ### Setup
 
-1. On a **clean Mac** that has never run this app before (or after running `tccutil reset All com.yourcompany.SystemAudioToMP3` and clearing the app from `~/Applications`).
+1. On a **clean Mac** that has never run this app before (or after running `tccutil reset All com.yourcompany.SystemAudioRecorder` and clearing the app from `~/Applications`).
 2. Ensure the Mac is connected to the internet (notarization ticket lookup requires network access on first launch).
 3. Download the release DMG from the distribution URL provided in the release notes.
 
 ### Steps
 
 1. In Finder, double-click the downloaded `.dmg` file.
-2. Observe: no Gatekeeper dialog saying *"SystemAudioToMP3.dmg cannot be opened because it is from an unidentified developer."*
+2. Observe: no Gatekeeper dialog saying *"SystemAudioRecorder.dmg cannot be opened because it is from an unidentified developer."*
 3. The DMG mounts and its window opens.
 4. Drag the app icon to the Applications folder alias in the DMG.
 5. Eject the DMG.
 6. In Finder, navigate to Applications and double-click **System Audio to MP3**.
-7. Observe: no Gatekeeper dialog saying *"SystemAudioToMP3 cannot be opened because it is from an unidentified developer."*
-8. Observe: macOS may show *"SystemAudioToMP3 is an app downloaded from the internet. Are you sure you want to open it?"* — click **Open**. This is expected on first launch and is not a failure.
+7. Observe: no Gatekeeper dialog saying *"SystemAudioRecorder cannot be opened because it is from an unidentified developer."*
+8. Observe: macOS may show *"SystemAudioRecorder is an app downloaded from the internet. Are you sure you want to open it?"* — click **Open**. This is expected on first launch and is not a failure.
 9. Confirm the app's main window appears.
 10. Run the `spctl` check in Terminal:
     ```
-    spctl --assess --verbose --type execute /Applications/SystemAudioToMP3.app
+    spctl --assess --verbose --type execute /Applications/SystemAudioRecorder.app
     ```
     Expected output: `accepted` with source `Notarized Developer ID`.
 

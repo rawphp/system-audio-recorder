@@ -1,6 +1,6 @@
 # Release Signing
 
-SystemAudioToMP3 uses **Developer ID Application** signing for Release builds, enabling direct-download distribution outside the Mac App Store (spec Section 2). This is a prerequisite for notarization (REQ-042).
+SystemAudioRecorder uses **Developer ID Application** signing for Release builds, enabling direct-download distribution outside the Mac App Store (spec Section 2). This is a prerequisite for notarization (REQ-042).
 
 ---
 
@@ -43,10 +43,10 @@ Find your 10-character team ID at [developer.apple.com/account](https://develope
 
 ```bash
 DEVELOPMENT_TEAM=XXXXXXXXXX xcodebuild \
-  -project SystemAudioToMP3.xcodeproj \
-  -scheme SystemAudioToMP3 \
+  -project SystemAudioRecorder.xcodeproj \
+  -scheme SystemAudioRecorder \
   -configuration Release \
-  -archivePath build/SystemAudioToMP3.xcarchive \
+  -archivePath build/SystemAudioRecorder.xcarchive \
   archive
 ```
 
@@ -57,7 +57,7 @@ After archiving, export the `.app`:
 ```bash
 xcodebuild \
   -exportArchive \
-  -archivePath build/SystemAudioToMP3.xcarchive \
+  -archivePath build/SystemAudioRecorder.xcarchive \
   -exportPath build/export \
   -exportOptionsPlist ExportOptions.plist
 ```
@@ -85,20 +85,20 @@ A minimal `ExportOptions.plist` for Developer ID distribution:
 After the archive/export step, verify the `.app` is correctly signed:
 
 ```bash
-codesign --verify --deep --strict --verbose=2 build/export/SystemAudioToMP3.app
+codesign --verify --deep --strict --verbose=2 build/export/SystemAudioRecorder.app
 ```
 
 Expected output — exit 0:
 
 ```
-build/export/SystemAudioToMP3.app: valid on disk
-build/export/SystemAudioToMP3.app: satisfies its Designated Requirement
+build/export/SystemAudioRecorder.app: valid on disk
+build/export/SystemAudioRecorder.app: satisfies its Designated Requirement
 ```
 
 Inspect signature details:
 
 ```bash
-codesign -dvv build/export/SystemAudioToMP3.app
+codesign -dvv build/export/SystemAudioRecorder.app
 ```
 
 Look for:
@@ -106,10 +106,10 @@ Look for:
 - `Timestamp=...` — confirms secure timestamp was embedded
 - `runtime` in `CodeDirectory flags` — confirms Hardened Runtime
 
-Confirm entitlements match `Resources/SystemAudioToMP3.entitlements`:
+Confirm entitlements match `Resources/SystemAudioRecorder.entitlements`:
 
 ```bash
-codesign -d --entitlements - build/export/SystemAudioToMP3.app
+codesign -d --entitlements - build/export/SystemAudioRecorder.app
 ```
 
 ---

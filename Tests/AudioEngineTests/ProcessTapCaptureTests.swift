@@ -1,7 +1,7 @@
 import XCTest
 import AVFoundation
 import CoreAudio
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - Mock infrastructure
 

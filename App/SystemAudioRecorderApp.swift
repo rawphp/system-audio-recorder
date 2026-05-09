@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @main
-struct SystemAudioToMP3App: App {
+struct SystemAudioRecorderApp: App {
     @State private var appStore = AppStore()
 
     /// Menu-bar controller — kept alive as long as the app runs.

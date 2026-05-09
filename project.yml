@@ -1,4 +1,4 @@
-name: SystemAudioToMP3
+name: SystemAudioRecorder
 options:
   bundleIdPrefix: com.tomkaczocha
   deploymentTarget:
@@ -30,7 +30,7 @@ packages:
     from: "2.0.0"
 
 targets:
-  SystemAudioToMP3:
+  SystemAudioRecorder:
     type: application
     platform: macOS
     sources:
@@ -49,10 +49,10 @@ targets:
         embed: false
     settings:
       base:
-        PRODUCT_NAME: SystemAudioToMP3
+        PRODUCT_NAME: SystemAudioRecorder
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.SystemAudioRecorder
         INFOPLIST_FILE: Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: Resources/SystemAudioToMP3.entitlements
+        CODE_SIGN_ENTITLEMENTS: Resources/SystemAudioRecorder.entitlements
       configs:
         Release:
           CODE_SIGN_IDENTITY: "Developer ID Application"
@@ -68,17 +68,17 @@ targets:
     sources:
       - path: Tests/AudioEngineTests
     dependencies:
-      - target: SystemAudioToMP3
+      - target: SystemAudioRecorder
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.AudioEngineTests
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
-  SystemAudioToMP3:
+  SystemAudioRecorder:
     build:
       targets:
-        SystemAudioToMP3: all
+        SystemAudioRecorder: all
         AudioEngineTests: [test]
     run:
       config: Debug

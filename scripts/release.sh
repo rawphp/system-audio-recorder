@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/release.sh
-# Build, notarize, and package SystemAudioToMP3 as a distributable DMG.
+# Build, notarize, and package SystemAudioRecorder as a distributable DMG.
 #
 # Prerequisites:
 #   - Apple Developer account with Developer ID Application certificate in keychain
@@ -12,14 +12,14 @@
 #   DEVELOPMENT_TEAM=XXXXXXXXXX scripts/release.sh
 #
 # Output:
-#   dist/SystemAudioToMP3-<version>.dmg  (notarized and stapled)
+#   dist/SystemAudioRecorder-<version>.dmg  (notarized and stapled)
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLIST="$REPO_ROOT/Resources/Info.plist"
-PROJECT="$REPO_ROOT/SystemAudioToMP3.xcodeproj"
-SCHEME="SystemAudioToMP3"
+PROJECT="$REPO_ROOT/SystemAudioRecorder.xcodeproj"
+SCHEME="SystemAudioRecorder"
 DIST_DIR="$REPO_ROOT/dist"
 STAGING_DIR="$REPO_ROOT/.staging"
 NOTARYTOOL_PROFILE="${NOTARYTOOL_PROFILE:-NOTARYTOOL_PROFILE}"
@@ -35,7 +35,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 echo "    Version: $VERSION"
 
-DMG_NAME="SystemAudioToMP3-${VERSION}.dmg"
+DMG_NAME="SystemAudioRecorder-${VERSION}.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ mkdir -p "$DIST_DIR"
 rm -f "$DMG_PATH"
 
 create-dmg \
-  --volname "SystemAudioToMP3 ${VERSION}" \
+  --volname "SystemAudioRecorder ${VERSION}" \
   --window-size 500 300 \
   --icon-size 100 \
   --app-drop-link 380 100 \

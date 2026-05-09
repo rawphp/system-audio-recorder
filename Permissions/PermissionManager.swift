@@ -165,7 +165,7 @@ public final class PermissionManager {
     ///   - Negative / entitlement-denied codes → `.deniedByEntitlement` or `.deniedByPolicy`
     private func probeAudioTap() -> AudioTapStatus {
         let desc = CATapDescription(stereoMixdownOfProcesses: [])
-        desc.name = "com.tomkaczocha.SystemAudioToMP3.probe"
+        desc.name = "com.tomkaczocha.SystemAudioRecorder.probe"
         var tapID: AudioObjectID = kAudioObjectUnknown
         let status = AudioHardwareCreateProcessTap(desc, &tapID)
 

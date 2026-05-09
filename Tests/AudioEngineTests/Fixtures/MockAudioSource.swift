@@ -1,6 +1,6 @@
 import AVFoundation
 import Accelerate
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - AudioBufferEmitter typealias
 //

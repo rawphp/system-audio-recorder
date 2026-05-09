@@ -1,5 +1,5 @@
-PROJECT  := SystemAudioToMP3
-SCHEME   := SystemAudioToMP3
+PROJECT  := SystemAudioRecorder
+SCHEME   := SystemAudioRecorder
 XCODEPROJ := $(PROJECT).xcodeproj
 DEST     := platform=macOS
 

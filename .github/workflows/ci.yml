@@ -36,8 +36,8 @@ jobs:
       - name: Build
         run: |
           xcodebuild build \
-            -project SystemAudioToMP3.xcodeproj \
-            -scheme SystemAudioToMP3 \
+            -project SystemAudioRecorder.xcodeproj \
+            -scheme SystemAudioRecorder \
             -destination 'platform=macOS' \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGN_IDENTITY="-" \

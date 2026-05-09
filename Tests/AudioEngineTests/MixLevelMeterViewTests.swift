@@ -2,7 +2,7 @@ import XCTest
 import SwiftUI
 import AVFoundation
 import CoreAudio
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - MeterMath Tests
 

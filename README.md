@@ -46,7 +46,7 @@ DEVELOPMENT_TEAM=XXXXXXXXXX scripts/release.sh
 
 The script will:
 1. Build the app in Release configuration (Developer ID-signed, hardened runtime).
-2. Create a DMG (`dist/SystemAudioToMP3-<version>.dmg`) with an Applications symlink for drag-to-install.
+2. Create a DMG (`dist/SystemAudioRecorder-<version>.dmg`) with an Applications symlink for drag-to-install.
 3. Submit the DMG to Apple for notarization and wait for approval.
 4. Staple the notarization ticket to the DMG.
 5. Verify with `spctl -a -vv -t install`.
@@ -54,7 +54,7 @@ The script will:
 ### Output
 
 ```
-dist/SystemAudioToMP3-<version>.dmg   # notarized, stapled, Gatekeeper-accepted
+dist/SystemAudioRecorder-<version>.dmg   # notarized, stapled, Gatekeeper-accepted
 ```
 
 The version is read from `Resources/Info.plist` (`CFBundleShortVersionString`). Bump that key before releasing a new version.

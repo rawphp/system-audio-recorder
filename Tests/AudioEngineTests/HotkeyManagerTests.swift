@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - StubHotkeyRegistrar
 

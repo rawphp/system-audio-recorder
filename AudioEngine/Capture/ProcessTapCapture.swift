@@ -205,7 +205,7 @@ final class RealProcessTapEmitter: PerProcessEmitter {
         // 2. Build a CATapDescription (stereo mix, unmuted)
         let description = CATapDescription(stereoMixdownOfProcesses: [processObjectID])
         description.muteBehavior = .unmuted
-        description.name = "SystemAudioToMP3.Tap.\(pid)"
+        description.name = "SystemAudioRecorder.Tap.\(pid)"
 
         // 3. Create the process tap
         var tap: AudioObjectID = kAudioObjectUnknown
@@ -228,8 +228,8 @@ final class RealProcessTapEmitter: PerProcessEmitter {
         }
 
         // 5. Create a private aggregate device with the tap as a sub-device
-        let aggregateUID = "com.tomkaczocha.SystemAudioToMP3.Aggregate.\(pid).\(UUID().uuidString)"
-        let aggregateName = "SystemAudioToMP3.Aggregate.\(pid)"
+        let aggregateUID = "com.tomkaczocha.SystemAudioRecorder.Aggregate.\(pid).\(UUID().uuidString)"
+        let aggregateName = "SystemAudioRecorder.Aggregate.\(pid)"
 
         let subTapDict: [String: Any] = [
             "uid": tapUID,

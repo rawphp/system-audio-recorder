@@ -109,7 +109,7 @@ extension AppStore: MenuBarStoreProtocol {
 /// 2. `start()` — install recursive observation loop via `withObservationTracking`.
 /// 3. `stop()` — cancel the observation and any running timer.
 ///
-/// `start()` and `stop()` are called by `SystemAudioToMP3App`.
+/// `start()` and `stop()` are called by `SystemAudioRecorderApp`.
 @MainActor
 public final class MenuBarController: NSObject {
 

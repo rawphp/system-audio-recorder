@@ -1,7 +1,7 @@
 import XCTest
 import AVFoundation
 import Darwin
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - Mock MicInputNode
 

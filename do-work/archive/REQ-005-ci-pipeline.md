@@ -17,7 +17,7 @@ Spec Section 7 commits to GitHub Actions CI on macos-14 running unit + integrati
 
 - [x] `.github/workflows/ci.yml` exists and triggers on `push` and `pull_request`
 - [x] Workflow uses `runs-on: macos-14`
-- [x] Workflow runs `xcodebuild build -project SystemAudioToMP3.xcodeproj -scheme SystemAudioToMP3 -destination 'platform=macOS'` (test command documented in comment; switches to `xcodebuild test` once REQ-036 lands)
+- [x] Workflow runs `xcodebuild build -project SystemAudioRecorder.xcodeproj -scheme SystemAudioRecorder -destination 'platform=macOS'` (test command documented in comment; switches to `xcodebuild test` once REQ-036 lands)
 - [x] Workflow caches `~/Library/Developer/Xcode/DerivedData` to speed up incremental runs
 - [ ] A red-test commit (deliberately failing test pushed to a throwaway branch, then reverted) makes the workflow fail — **DEFERRED — requires GitHub remote + REQ-036**
 

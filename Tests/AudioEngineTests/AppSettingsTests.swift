@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - AppSettingsTests
 // REQ-021: Settings persistence with UserDefaults schema and security-scoped output bookmark

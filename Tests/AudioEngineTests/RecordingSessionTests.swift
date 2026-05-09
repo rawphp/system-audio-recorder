@@ -1,6 +1,6 @@
 import XCTest
 import AVFoundation
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - Inline test double
 

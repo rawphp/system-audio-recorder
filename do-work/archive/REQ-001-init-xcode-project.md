@@ -7,7 +7,7 @@
 
 ## Task
 
-Create the `SystemAudioToMP3.xcodeproj` Xcode project: SwiftUI macOS app target, deployment target macOS 14.4, Swift 5.10, universal (arm64 + x86_64). Bundle id `com.tomkaczocha.SystemAudioRecorder`. Establish the folder structure documented in Section 9 of the design spec.
+Create the `SystemAudioRecorder.xcodeproj` Xcode project: SwiftUI macOS app target, deployment target macOS 14.4, Swift 5.10, universal (arm64 + x86_64). Bundle id `com.tomkaczocha.SystemAudioRecorder`. Establish the folder structure documented in Section 9 of the design spec.
 
 ## Context
 
@@ -15,7 +15,7 @@ This is the foundation REQ — every later REQ adds files inside this project. T
 
 ## Acceptance Criteria
 
-- [x] `SystemAudioToMP3.xcodeproj` exists at the repo root
+- [x] `SystemAudioRecorder.xcodeproj` exists at the repo root
 - [x] App target builds an empty SwiftUI window (default `App` + `ContentView` showing "System Audio Recorder")
 - [x] Deployment target is `macOS 14.4`; build settings include both `arm64` and `x86_64` architectures
 - [x] Bundle identifier is `com.tomkaczocha.SystemAudioRecorder`
@@ -23,14 +23,14 @@ This is the foundation REQ — every later REQ adds files inside this project. T
 
 ## Verification Steps
 
-1. **build** `xcodebuild -project SystemAudioToMP3.xcodeproj -scheme SystemAudioToMP3 -configuration Debug build`
+1. **build** `xcodebuild -project SystemAudioRecorder.xcodeproj -scheme SystemAudioRecorder -configuration Debug build`
    - Expected: BUILD SUCCEEDED, no warnings
 2. **runtime** Open the built `.app` from `~/Library/Developer/Xcode/DerivedData/.../Build/Products/Debug/`
    - Expected: an empty window titled "System Audio Recorder" opens; closing it quits the app
 
 ## Integration
 
-**Reachability:** App entry point is `App/SystemAudioToMP3App.swift` — the `@main` SwiftUI `App` struct. Cited in design spec Section 9.
+**Reachability:** App entry point is `App/SystemAudioRecorderApp.swift` — the `@main` SwiftUI `App` struct. Cited in design spec Section 9.
 
 **Data dependencies:** None at this stage. Future REQs add `AppStore` and persisted settings keyed under bundle id `com.tomkaczocha.SystemAudioRecorder` (spec Section 6.2).
 
@@ -39,8 +39,8 @@ This is the foundation REQ — every later REQ adds files inside this project. T
 ## Outputs
 
 - `project.yml` — XcodeGen spec (macOS 14.4, Swift 5.10, arm64+x86_64, bundle id com.tomkaczocha.SystemAudioRecorder)
-- `SystemAudioToMP3.xcodeproj/` — generated Xcode project + scheme
-- `App/SystemAudioToMP3App.swift` — `@main` SwiftUI App, `WindowGroup("System Audio Recorder")`
+- `SystemAudioRecorder.xcodeproj/` — generated Xcode project + scheme
+- `App/SystemAudioRecorderApp.swift` — `@main` SwiftUI App, `WindowGroup("System Audio Recorder")`
 - `App/Views/ContentView.swift` — minimal ContentView showing "System Audio Recorder"
 - `AudioEngine/.gitkeep`, `Permissions/.gitkeep`, `Hotkey/.gitkeep`, `Resources/.gitkeep`, `Vendor/.gitkeep`, `Tests/.gitkeep` — empty group placeholders per spec Section 9
 

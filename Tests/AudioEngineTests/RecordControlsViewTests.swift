@@ -1,7 +1,7 @@
 import XCTest
 import AVFoundation
 import SwiftUI
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - Test doubles
 

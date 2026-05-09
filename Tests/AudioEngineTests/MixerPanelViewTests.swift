@@ -2,7 +2,7 @@ import XCTest
 import AVFoundation
 import CoreAudio
 import SwiftUI
-@testable import SystemAudioToMP3
+@testable import SystemAudioRecorder
 
 // MARK: - Test doubles (file-private, REQ-028)
 
