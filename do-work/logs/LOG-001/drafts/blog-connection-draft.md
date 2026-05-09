@@ -1,0 +1,1 @@
+Wrapped libmp3lame in Swift for this project — feeding it Float32 PCM chunks, flushing at the end, cleaning up partial files on cancellation. It's a 1970s C library doing the heavy lifting inside a 2025 SwiftUI app. Have you ever shipped something this architecturally mismatched? Did it work?

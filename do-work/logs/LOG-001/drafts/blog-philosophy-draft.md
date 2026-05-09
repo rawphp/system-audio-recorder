@@ -1,0 +1,1 @@
+The hardest part of building audio software isn't the signal math — it's the concurrency. Audio threads, UI threads, and async actors all have different rules. Design your abstractions around those boundaries first and the features follow naturally.

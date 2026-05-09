@@ -1,0 +1,1 @@
+macOS has a Core Audio API that lets you tap any app's audio output without muting it. Almost nobody knows it exists. I used it as the foundation of a system audio recorder — 42 tasks, 358 tests, shipped in a day.

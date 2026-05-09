@@ -1,0 +1,1 @@
+Shipped a macOS system audio recorder: captures per-process audio via Core Audio Tap, mixes with microphone, normalizes to 48 kHz Float32, writes WAV, encodes to MP3 via libmp3lame. SwiftUI frontend. 42 requirements, 358 tests, crash-safe with sidecar recovery.

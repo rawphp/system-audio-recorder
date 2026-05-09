@@ -1,0 +1,1 @@
+A 24-hour build is more trustworthy than a 6-month one. Constraint forces you to write the simplest thing that works and test it immediately. This macOS recorder has 358 tests and zero known bugs — not despite the speed, because of it.

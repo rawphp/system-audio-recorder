@@ -1,0 +1,1 @@
+I only realized mid-build that different apps can output audio at 44.1 kHz, 48 kHz, or 96 kHz — sometimes switching mid-track. My mixer assumed a fixed rate. Every source now goes through a resampler that recreates itself when the format changes. Should have read the spec risk section first.

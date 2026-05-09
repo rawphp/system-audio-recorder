@@ -1,0 +1,1 @@
+Audio threads can't lock. If your UI stalls, the audio thread must keep going — it can't wait on a mutex. The fix: a lock-free SPSC ring buffer using only atomic operations. The audio thread writes, the UI drains at 50 Hz. Neither ever blocks the other.

@@ -1,0 +1,1 @@
+Step 1: tap system audio using a macOS API from 2023 that barely anyone has documented. Step 2: resample everything to 48 kHz because apps can't agree. Step 3: hand it to a C library from 1998 to make an MP3. Software archaeology as a service.

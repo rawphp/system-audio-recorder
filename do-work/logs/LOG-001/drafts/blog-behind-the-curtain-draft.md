@@ -1,0 +1,1 @@
+The crash-safety design: every second, write the WAV sample count to a sidecar JSON next to the file. If the app dies, the WAV header says 0 bytes but the data is there. On next launch, scan for sidecars, rewrite the header from actual file size, offer recovery. Five tests cover it.

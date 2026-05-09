@@ -1,0 +1,1 @@
+Built a macOS system audio recorder this week. Tap any app, mix with mic, encode to MP3. Crash-safe. 42 tasks, 358 tests.
