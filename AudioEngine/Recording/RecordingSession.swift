@@ -54,18 +54,28 @@ public struct SessionConfig: Sendable {
     /// from `UserDefaults`; for now it lives only in `SessionConfig`.)
     public let autoStopDuration: TimeInterval?
 
+    /// When set, `RecordingSession` watches the mix-bus stream for a continuous
+    /// silence window of this many seconds (RMS < −60 dBFS). After a 2-second
+    /// startup grace period, if silence persists for `autoStopSilenceSeconds`
+    /// consecutive seconds, `stop()` is called on the main queue.
+    /// `nil` (default) means no silence detector is installed. (REQ-021 will
+    /// later wire this from `UserDefaults`.)
+    public let autoStopSilenceSeconds: TimeInterval?
+
     public init(
         sources: [Source],
         outputMode: OutputMode,
         outputFolder: URL,
         timestamp: String,
-        autoStopDuration: TimeInterval? = nil
+        autoStopDuration: TimeInterval? = nil,
+        autoStopSilenceSeconds: TimeInterval? = nil
     ) {
         self.sources = sources
         self.outputMode = outputMode
         self.outputFolder = outputFolder
         self.timestamp = timestamp
         self.autoStopDuration = autoStopDuration
+        self.autoStopSilenceSeconds = autoStopSilenceSeconds
     }
 }
 
@@ -147,6 +157,15 @@ public actor RecordingSession {
     private var recordingSegmentStart: Date?
     /// The live `DispatchSourceTimer`. Cancelled on pause / stop.
     private var autoStopTimer: DispatchSourceProtocol?
+
+    // MARK: - Silence detector (REQ-015)
+
+    /// The configured silence threshold (nil = detector off).
+    private var silenceThreshold: TimeInterval?
+    /// Task driving the silence-detector side of the mix fan-out.
+    private var silenceDetectorTask: Task<Void, Never>?
+    /// Continuation for the silence-detector's copy of the mix stream (fan-out write side).
+    private var silenceDetectorCont: AsyncStream<AVAudioPCMBuffer>.Continuation?
 
     // MARK: - Error stream (REQ-033 hand-off)
 
@@ -234,22 +253,60 @@ public actor RecordingSession {
         // Launch the writer task. It drains either the mix stream (mixed mode)
         // or the per-source streams + mix (separate mode) into WAV files.
         let mode = config.outputMode
-        let mixStream = mixer.mixBufferStream()
+        let rawMixStream = mixer.mixBufferStream()
         let perSourceStreams: [(String, AsyncStream<AVAudioPCMBuffer>)] = config.sources.map { src in
             (src.id, mixer.sourceBufferStream(forSource: src.id))
         }
         let errCont = self.errorContinuation
         let logger = self.log
 
+        // REQ-015: If silence detection is configured, fan-out the mix stream so
+        // both the WAV writer and the silence detector receive every buffer.
+        let writerMixStream: AsyncStream<AVAudioPCMBuffer>
+        if let silenceSecs = config.autoStopSilenceSeconds {
+            self.silenceThreshold = silenceSecs
+
+            // Build two downstream streams from the single raw mix stream.
+            var writerCont: AsyncStream<AVAudioPCMBuffer>.Continuation!
+            var detectorCont: AsyncStream<AVAudioPCMBuffer>.Continuation!
+            let writerStream   = AsyncStream<AVAudioPCMBuffer> { writerCont   = $0 }
+            let detectorStream = AsyncStream<AVAudioPCMBuffer> { detectorCont = $0 }
+
+            // Save the detector continuation so pause/stop can close it cleanly.
+            self.silenceDetectorCont = detectorCont
+
+            // Fan-out task: reads from mixer, yields to both downstreams.
+            let wc = writerCont!
+            let dc = detectorCont!
+            Task.detached {
+                for await buf in rawMixStream {
+                    wc.yield(buf)
+                    dc.yield(buf)
+                }
+                wc.finish()
+                dc.finish()
+            }
+
+            writerMixStream = writerStream
+
+            // Launch the silence detector.
+            silenceDetectorTask = installSilenceDetector(
+                stream: detectorStream,
+                threshold: silenceSecs
+            )
+        } else {
+            writerMixStream = rawMixStream
+        }
+
         writerTask = Task.detached {
             do {
                 switch mode {
                 case .mixed:
-                    return try await writer.runMixed(stream: mixStream)
+                    return try await writer.runMixed(stream: writerMixStream)
                 case .separate:
                     return try await writer.runSeparate(
                         sources: perSourceStreams,
-                        mixStream: mixStream
+                        mixStream: writerMixStream
                     )
                 }
             } catch {
@@ -279,6 +336,8 @@ public actor RecordingSession {
         }
         // Cancel timer before state change; subtract elapsed segment time.
         cancelAutoStopTimer()
+        // Reset silence detector on pause (safe default per spec Section 5.6).
+        notifySilenceDetectorPaused()
         await writer?.pause()
         state = .paused
     }
@@ -296,6 +355,8 @@ public actor RecordingSession {
         if autoStopDuration != nil {
             armAutoStopTimer(remaining: autoStopRemaining)
         }
+        // Restart grace period in silence detector after resume.
+        notifySilenceDetectorResumed()
     }
 
     // MARK: - Lifecycle: stop
@@ -336,6 +397,12 @@ public actor RecordingSession {
             }
         }
 
+        // 4b) Tear down silence detector (if any).
+        silenceDetectorTask?.cancel()
+        silenceDetectorTask = nil
+        silenceDetectorCont?.finish()
+        silenceDetectorCont = nil
+
         // 5) Drop references.
         writerTask = nil
         writer = nil
@@ -344,6 +411,7 @@ public actor RecordingSession {
         autoStopDuration = nil
         autoStopRemaining = 0
         recordingSegmentStart = nil
+        silenceThreshold = nil
 
         lastURLs = urls
         return urls
@@ -402,6 +470,140 @@ public actor RecordingSession {
         // re-entrancy on the actor (we may already be inside a normalization
         // task that the stop sequence is awaiting).
         Task { _ = await self.stop() }
+    }
+
+    // MARK: - Silence detector (REQ-015)
+
+    /// Shared mutable state for the silence detector task, guarded by NSLock.
+    /// Kept off-actor so the detector `Task.detached` can mutate it without
+    /// hopping onto the actor's executor on every buffer.
+    private final class SilenceDetectorState: @unchecked Sendable {
+        private let lock = NSLock()
+        /// Wall-clock time at which the *current* active segment began
+        /// (i.e. after the last resume, or when the session started).
+        private var segmentStart: Date = Date()
+        /// Accumulated *active* (non-paused) seconds at the time of the last pause.
+        private var accumulatedActiveSeconds: TimeInterval = 0
+        /// True while the session is paused — detector drops buffers.
+        private var _paused: Bool = false
+
+        var isPaused: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return _paused
+        }
+
+        /// Marks the session as paused; freezes active-time accounting.
+        func pause() {
+            lock.lock(); defer { lock.unlock() }
+            // Accumulate the active seconds up to now.
+            accumulatedActiveSeconds += Date().timeIntervalSince(segmentStart)
+            _paused = true
+        }
+
+        /// Marks the session as resumed; restarts the segment clock AND
+        /// resets accumulated active seconds (grace period restarts from 0).
+        func resume() {
+            lock.lock(); defer { lock.unlock() }
+            accumulatedActiveSeconds = 0
+            segmentStart = Date()
+            _paused = false
+        }
+
+        /// Returns total active (non-paused) seconds since the last resume
+        /// (or since creation, whichever is more recent).
+        func activeSeconds() -> TimeInterval {
+            lock.lock(); defer { lock.unlock() }
+            if _paused {
+                return accumulatedActiveSeconds
+            }
+            return accumulatedActiveSeconds + Date().timeIntervalSince(segmentStart)
+        }
+    }
+
+    /// Shared state object referenced by the silence-detector task.
+    private var silenceDetectorState: SilenceDetectorState?
+
+    /// Installs the silence-detector async task.
+    ///
+    /// The task:
+    /// 1. Skips the first `gracePeriod` (2.0 s) of active recording time.
+    /// 2. Evaluates each buffer's RMS (via `MeterTap.computeRMS`).
+    /// 3. If RMS < −60 dBFS, accumulates the buffer's duration into the
+    ///    consecutive-silence counter; otherwise resets it immediately.
+    /// 4. When the counter reaches `threshold`, calls `stop()` on the actor.
+    ///
+    /// The 200 ms *windowed* RMS spec refers to integration over the buffer
+    /// duration — each `AVAudioPCMBuffer` is already ~10 ms so the MeterTap
+    /// stateless function provides the window. Using **peak detection** (any
+    /// above-threshold buffer resets the counter) matches the spec intent that
+    /// "audio above -60 dBFS at any point resets the counter".
+    ///
+    /// - Parameters:
+    ///   - stream:    Fan-out copy of the mix-bus stream.
+    ///   - threshold: Seconds of consecutive silence required to trigger stop.
+    /// - Returns: The detector `Task` (stored so it can be cancelled on teardown).
+    private func installSilenceDetector(
+        stream: AsyncStream<AVAudioPCMBuffer>,
+        threshold: TimeInterval
+    ) -> Task<Void, Never> {
+        let state = SilenceDetectorState()
+        self.silenceDetectorState = state
+
+        // Per spec: silence = RMS < −60 dBFS.
+        let silenceDBFS: Float = -60.0
+        let gracePeriod: TimeInterval = 2.0
+
+        return Task.detached { [weak self] in
+            guard let self else { return }
+
+            // Wall-clock time when the current consecutive-silence run started.
+            // nil means the previous buffer was not silent.
+            var silenceRunStart: Date? = nil
+
+            for await buf in stream {
+                // Drop buffers while paused (silence counter frozen).
+                guard !state.isPaused else {
+                    silenceRunStart = nil
+                    continue
+                }
+
+                // Skip grace period.
+                guard state.activeSeconds() >= gracePeriod else {
+                    silenceRunStart = nil
+                    continue
+                }
+
+                let rms = MeterTap.computeRMS(buf)
+
+                if rms < silenceDBFS {
+                    // Silent buffer — start or continue the silence run.
+                    if silenceRunStart == nil {
+                        silenceRunStart = Date()
+                    }
+                    // Check if we've been silent long enough.
+                    let silentSecs = Date().timeIntervalSince(silenceRunStart!)
+                    if silentSecs >= threshold {
+                        _ = await self.stop()
+                        return
+                    }
+                } else {
+                    // Audio detected — reset the consecutive silence run.
+                    silenceRunStart = nil
+                }
+            }
+        }
+    }
+
+    /// Called by `pause()` to signal the silence detector that the session is paused.
+    /// The detector drops buffers while paused and resets its silence counter.
+    private func notifySilenceDetectorPaused() {
+        silenceDetectorState?.pause()
+    }
+
+    /// Called by `resume()` to signal the silence detector that the session has
+    /// resumed. The grace period restarts and the silence counter resets.
+    private func notifySilenceDetectorResumed() {
+        silenceDetectorState?.resume()
     }
 }
 

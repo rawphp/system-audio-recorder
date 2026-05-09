@@ -42,6 +42,22 @@ private final class FakeEmitter: RecordingSourceEmitter, @unchecked Sendable {
         cont.yield(buf)
     }
 
+    /// Yield one canonical-format buffer filled with zeros (below -60 dBFS noise floor).
+    func pushSilent(frameCount: AVAudioFrameCount = 480) {
+        lock.lock(); defer { lock.unlock() }
+        guard !stopped else { return }
+        let fmt = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 48000,
+            channels: 2,
+            interleaved: false
+        )!
+        let buf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: frameCount)!
+        buf.frameLength = frameCount
+        // All samples are zero — RMS = -160 dBFS (MeterTap.silenceDBFS)
+        cont.yield(buf)
+    }
+
     func finishStream() {
         lock.lock(); defer { lock.unlock() }
         cont.finish()
@@ -488,5 +504,199 @@ final class RecordingSessionTests: XCTestCase {
         try await Task.sleep(nanoseconds: 200_000_000)
         let s2 = await session.state
         XCTAssertEqual(s2, .stopped, "state should remain .stopped after manual stop cancels timer")
+    }
+
+    // MARK: - REQ-015: Auto-stop on silence
+
+    /// AC1: nil autoStopSilenceSeconds → silence detector is not active; session keeps running.
+    func testNilAutoStopSilenceNoDetector() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: nil
+        )
+
+        try await session.start(config: cfg)
+
+        // Push silent buffers for 1.5 s — should NOT trigger stop since detector is off.
+        let deadline = Date().addingTimeInterval(1.5)
+        while Date() < deadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let s = await session.state
+        XCTAssertEqual(s, .recording, "should still be recording with nil autoStopSilenceSeconds")
+        _ = await session.stop()
+    }
+
+    /// AC2: grace period — silent buffers in the first 2 s do NOT trigger auto-stop.
+    func testSilenceDetectorGracePeriodPreventsEarlyStop() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        // threshold = 1.0 s, grace = 2.0 s → stop should require 3.0 s total.
+        // We push silent buffers for only 2.5 s (inside grace + partial threshold).
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        let t0 = Date()
+        try await session.start(config: cfg)
+
+        // Push silent buffers for 2.5 s total — the detector should NOT have fired
+        // since the grace period is 2.0 s and we haven't held silence for 1.0 s *after* it.
+        let deadline = Date().addingTimeInterval(2.5)
+        while Date() < deadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Still recording (< 1.0 s of silence has elapsed after the 2.0 s grace).
+        let s = await session.state
+        XCTAssertEqual(s, .recording, "should still be recording — silence hasn't exceeded threshold post-grace")
+        _ = await session.stop()
+        _ = t0  // suppress unused-variable warning
+    }
+
+    /// AC3: Feeding silent buffers for `threshold + grace` triggers auto-stop.
+    func testSilenceDetectorStopsAfterThreshold() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        // threshold = 1.0 s, so auto-stop should fire ~3.0 s after start
+        // (2.0 s grace + 1.0 s silence).
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        let t0 = Date()
+        try await session.start(config: cfg)
+
+        // Drive silent buffers until session stops or we hit a 5 s wall-clock deadline.
+        let wallDeadline = Date().addingTimeInterval(5.0)
+        while Date() < wallDeadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+            let s = await session.state
+            if s == .stopped { break }
+        }
+
+        let elapsed = Date().timeIntervalSince(t0)
+        let s = await session.state
+        XCTAssertEqual(s, .stopped, "session should have auto-stopped due to silence")
+        // Must have waited at least the grace period + threshold (~3.0 s).
+        XCTAssertGreaterThan(elapsed, 2.5, "stopped too early: \(elapsed)s")
+        // Should stop within a reasonable window (5 s gives headroom for CI jitter).
+        XCTAssertLessThan(elapsed, 5.0, "stopped too late: \(elapsed)s")
+    }
+
+    /// AC4: Mixing in audio above -60 dBFS resets the silence counter.
+    func testSilenceDetectorResetsOnAudio() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        // threshold = 1.0 s (silence must be unbroken for 1 s after grace).
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        try await session.start(config: cfg)
+
+        // Burn through grace period with silent buffers (~2.1 s).
+        let graceDeadline = Date().addingTimeInterval(2.1)
+        while Date() < graceDeadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Now push silent for 0.9 s (below threshold).
+        let silentDeadline = Date().addingTimeInterval(0.9)
+        while Date() < silentDeadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Inject audio — should reset the counter.
+        for _ in 0..<5 {
+            e.push()  // non-silent (0.1 * sin) ≈ -20 dBFS
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Push silent again for 0.9 s — total unbroken silence is <1.0 s → should NOT stop.
+        let silentDeadline2 = Date().addingTimeInterval(0.9)
+        while Date() < silentDeadline2 {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let s = await session.state
+        XCTAssertEqual(s, .recording, "session should still be recording — audio reset the silence counter")
+        _ = await session.stop()
+    }
+
+    /// AC5: Pause resets the silence counter; resume restarts the grace period.
+    func testSilenceDetectorResetsOnPause() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+
+        // threshold = 1.0 s.
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        try await session.start(config: cfg)
+
+        // Burn grace period with silent buffers (~2.1 s).
+        let graceDeadline = Date().addingTimeInterval(2.1)
+        while Date() < graceDeadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Push silent for 0.9 s (close to threshold but not over).
+        let almostDeadline = Date().addingTimeInterval(0.9)
+        while Date() < almostDeadline {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Pause — counter should reset; resume should restart grace period.
+        try await session.pause()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        try await session.resume()
+
+        // Push silent for 0.9 s — since we just resumed, the grace period restarts
+        // so the counter never reaches the 1.0 s threshold within this window.
+        let silentDeadline3 = Date().addingTimeInterval(0.9)
+        while Date() < silentDeadline3 {
+            e.pushSilent()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let s = await session.state
+        XCTAssertEqual(s, .recording, "session should still be recording — pause reset silence counter and restarted grace")
+        _ = await session.stop()
     }
 }
