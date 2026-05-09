@@ -20,6 +20,7 @@ Spec Section 5.4 mandates a single canonical format (48 kHz, Float32, stereo) at
 - [ ] 48 kHz F32 stereo input is passed through with no work
 - [ ] Mid-stream input format change triggers resampler recreation; no clicks or dropped samples beyond one buffer worth (~10 ms)
 - [ ] Tested at four input rates: 44.1k, 48k, 88.2k, 96k
+- [ ] If `AVAudioConverter` initialization fails for an input format (e.g. unsupported sample rate or channel layout), the normalizer throws `NormalizerError.unsupportedInputFormat(AVAudioFormat)` and emits no buffers for that source until a new compatible format arrives
 
 ## Verification Steps
 

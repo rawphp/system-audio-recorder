@@ -24,6 +24,8 @@ Spec Section 5.3 diagrams the graph. Per-source gain via `AVAudioMixerNode.outpu
 - [ ] Mixed output is the linear sum of (per-source buffer × per-source gain)
 - [ ] Separate-mode source taps produce buffers identical to the per-source post-gain stage
 - [ ] Removing a source mid-recording does not click or drop samples in surviving sources
+- [ ] `addSource(id:stream:)` called with an `id` already registered throws `MixerError.duplicateSourceID(String)` and does not mutate graph state
+- [ ] If a source's upstream `AsyncStream` terminates with an error, the mixer logs the error, removes that source, and continues mixing the remaining sources without stopping the engine
 
 ## Verification Steps
 

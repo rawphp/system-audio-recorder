@@ -21,6 +21,7 @@ Spec Section 3 names KeyboardShortcuts as the standard wrapper. Spec Section 6.2
 - [ ] Pressing the hotkey while recording stops the recording (and triggers encoding via REQ-018)
 - [ ] Pressing the hotkey while paused is a no-op (per spec — paused means deliberate hold)
 - [ ] Hotkey fires `AppStore.toggleRecording()` even when the app has no key window and another app is frontmost (verified by activating Finder and pressing the bound shortcut)
+- [ ] If macOS rejects shortcut registration (e.g. another app has claimed the same combination via a system-wide tap that prevents delivery), the manager surfaces a non-fatal banner via `ErrorSurface` (REQ-033) reading "Hotkey conflict — pick a different shortcut in Settings" and the recorder UI shows the binding as inactive
 
 ## Verification Steps
 

@@ -27,6 +27,7 @@ Spec Section 5.5 specifies pause/resume semantics: `engine.pause()` freezes WAV 
 - [ ] `resume()` restarts buffer writes; the resulting WAV has no silent gap
 - [ ] `stop()` returns a list of file URLs; the engine and all captures are torn down before return
 - [ ] All lifecycle methods are safe to call from the main thread
+- [ ] If a capture (process tap or mic) errors mid-session, the session transitions to `failed`, drains any buffered audio to disk via WAVWriter.close(), returns the partial file URLs, and reports the underlying error via `ErrorSurface` (REQ-033) as non-fatal severity
 
 ## Verification Steps
 

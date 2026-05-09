@@ -24,6 +24,7 @@ Spec Section 5.7 specifies `AVAudioFile` writes at 48 kHz Float32 (matching Form
 - [ ] Files flush to disk every 1 second (verifiable: kill the writer mid-record, opened file is at most 1 s short of expected length)
 - [ ] `close()` finalizes WAV headers correctly; files play in QuickTime / VLC
 - [ ] Pause/resume produces one continuous file with no silent fill at the gap (file write cursor freezes during pause)
+- [ ] On disk-write failure (e.g. disk full, permission denied), the writer throws `WriterError.diskWriteFailed(URL, underlying: Error)` from its consumer task, finalizes any successfully written bytes by closing the WAV header, and surfaces the error via the writer's error stream (consumed by RecordingSession REQ-013)
 
 ## Verification Steps
 

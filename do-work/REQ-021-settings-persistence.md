@@ -21,6 +21,8 @@ Spec Section 6.2 enumerates every persisted key with its default. Section 4.6 ro
 - [ ] Setting any value triggers persistence within one run-loop tick
 - [ ] Reading any value before first set returns the documented default
 - [ ] Schema migration: a future v2 key added with a default does not corrupt existing v1 settings
+- [ ] If the persisted security-scoped bookmark fails to resolve on access (folder deleted/moved/unmounted), `outputFolder.url` returns `nil` and `AppSettings` surfaces a non-fatal banner via `ErrorSurface` (REQ-033) prompting the user to re-pick the folder; recording attempts before re-pick throw `SettingsError.outputFolderUnavailable`
+- [ ] If creating the default `~/Music/Recordings` directory on first launch fails (permission denied / read-only volume), `AppSettings` falls back to `NSTemporaryDirectory()/Recordings`, surfaces a non-fatal banner explaining the fallback, and persists the fallback path as a fresh bookmark
 
 ## Verification Steps
 

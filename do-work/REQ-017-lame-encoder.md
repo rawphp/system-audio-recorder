@@ -21,6 +21,8 @@ Spec Section 5.7 specifies the LAME pipeline: 1-second chunks, `lame_encode_buff
 - [ ] `progress` callback fires at least 5 times during a 5 s file encode (sub-1-second granularity)
 - [ ] Throws `EncodingError.cancelled` if the task is cancelled mid-encode (Task.checkCancellation respected)
 - [ ] Output MP3 size for a 60 s tone at 192 kbps VBR is within ±10% of expected (1.44 MB ± 144 KB)
+- [ ] If the input WAV cannot be opened by `AVAudioFile` (corrupt/missing/unsupported format), encoder throws `EncodingError.invalidInput(URL, underlying: Error)` before any LAME init and writes no MP3
+- [ ] If `lame_init` or `lame_init_params` returns a non-zero error code, encoder throws `EncodingError.lameInitFailed(code: Int)` and writes no MP3
 
 ## Verification Steps
 
