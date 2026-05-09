@@ -31,25 +31,7 @@ public final class ContentViewModel {
 // NOTE: SourcePickerView is now the real implementation in App/Views/SourcePickerView.swift (REQ-024).
 
 
-/// Placeholder for the unified mix-level meter + dB readout (REQ-026 replaces this).
-// TODO: REQ-026 replaces this
-struct MixLevelMeterView: View {
-    var body: some View {
-        HStack {
-            // Simulated idle bar graphic
-            ForEach(1...8, id: \.self) { i in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.accentColor.opacity(0.25))
-                    .frame(width: 6, height: CGFloat(i * 4))
-            }
-            Spacer()
-            Text("-∞ dB")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal)
-    }
-}
+// MixLevelMeterView is now defined in App/Views/MixLevelMeterView.swift (REQ-026).
 
 /// Placeholder for the output-settings sheet (REQ-029 replaces this).
 // TODO: REQ-029 replaces this
@@ -135,7 +117,7 @@ public struct ContentView: View {
             Spacer()
 
             // ── Level meter placeholder ───────────────────────────────────
-            MixLevelMeterView() // TODO: REQ-026 replaces this
+            MixLevelMeterView()
 
             Spacer()
                 .frame(height: 4)
