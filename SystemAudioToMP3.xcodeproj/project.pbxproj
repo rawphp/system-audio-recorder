@@ -14,6 +14,7 @@
 		188E9C67477AC7F65CC41251 /* lame.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */; };
 		1F9722935AF827FB75B81230 /* WAVWriterRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */; };
 		22D91EFBC1FA217D126D7794 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA159C2C5FEAD89C7F41A98 /* AppStoreTests.swift */; };
+		2E83A6971897E2ECE591645D /* SaveToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AC45F6626DC38654CC0F8AB /* SaveToast.swift */; };
 		2E859A44DEB18515F4080ADD /* EncodingQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = D274654D7BDCC37DD4E742B2 /* EncodingQueue.swift */; };
 		2EC82161F2F8B7D2F1467253 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10FDC107B005539E0B08CC1 /* HotkeyManager.swift */; };
 		307DAA04B3DA7A5B6DF33ECA /* LameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */; };
@@ -26,6 +27,7 @@
 		58FDF46E2D66F1123B3F6AD6 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9A488F29EA8095D03D910C /* RecordingSession.swift */; };
 		6A5CC80D047842E67F90EAC3 /* RecordingSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */; };
 		70A489BAB699BFF4C79059B2 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AAB2B337936132E46ABCBB /* AppSettings.swift */; };
+		7962F5F5C2BA974F11086ABF /* SaveToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */; };
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
 		7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */; };
 		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
@@ -86,9 +88,11 @@
 		691DD1DAC2FE9CD1FD67DA79 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		6B5AD176F4CEB52EC3CCE22A /* RecordControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordControlsView.swift; sourceTree = "<group>"; };
 		7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerGraphTests.swift; sourceTree = "<group>"; };
+		7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToastTests.swift; sourceTree = "<group>"; };
 		7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoder.swift; sourceTree = "<group>"; };
 		804127FF177E5F203BED7EA4 /* SystemAudioToMP3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemAudioToMP3.entitlements; sourceTree = "<group>"; };
 		84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSessionTests.swift; sourceTree = "<group>"; };
+		8AC45F6626DC38654CC0F8AB /* SaveToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToast.swift; sourceTree = "<group>"; };
 		903A2DABBF22B8F211727022 /* RecordControlsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordControlsViewTests.swift; sourceTree = "<group>"; };
 		92DD7741280FE37E3322907A /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		931D0A5F90DDDD916E343E6E /* MixLevelMeterViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixLevelMeterViewTests.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 				22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */,
 				903A2DABBF22B8F211727022 /* RecordControlsViewTests.swift */,
 				84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */,
+				7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */,
 				D585DEE586C6085698CCFDDD /* SourcePickerViewTests.swift */,
 				D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */,
 				DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */,
@@ -278,6 +283,7 @@
 				400CF837AB2D02454A0D3B72 /* ContentView.swift */,
 				5F11959D4EDAC3D56ADAAA92 /* MixLevelMeterView.swift */,
 				6B5AD176F4CEB52EC3CCE22A /* RecordControlsView.swift */,
+				8AC45F6626DC38654CC0F8AB /* SaveToast.swift */,
 				F054DB47B580A040E918981D /* SourcePickerView.swift */,
 			);
 			path = Views;
@@ -418,6 +424,7 @@
 				AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */,
 				84FA06CBD542B594DD494622 /* RecordControlsView.swift in Sources */,
 				58FDF46E2D66F1123B3F6AD6 /* RecordingSession.swift in Sources */,
+				2E83A6971897E2ECE591645D /* SaveToast.swift in Sources */,
 				85CACA34277B8496F4AA4766 /* SourcePickerView.swift in Sources */,
 				F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */,
 				AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */,
@@ -444,6 +451,7 @@
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
 				C0099FE2030F718E611DE801 /* RecordControlsViewTests.swift in Sources */,
 				6A5CC80D047842E67F90EAC3 /* RecordingSessionTests.swift in Sources */,
+				7962F5F5C2BA974F11086ABF /* SaveToastTests.swift in Sources */,
 				47ED9DF48C3F0DF74D3D737B /* SourcePickerViewTests.swift in Sources */,
 				1F9722935AF827FB75B81230 /* WAVWriterRecoveryTests.swift in Sources */,
 				5457FB4B84966164F27232CD /* WAVWriterTests.swift in Sources */,

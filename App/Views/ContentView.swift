@@ -85,6 +85,9 @@ public struct ContentView: View {
     /// (e.g. in #Preview or unit-test contexts that don't inject AppStore).
     @State private var sourcePickerVM: SourcePickerViewModel? = nil
 
+    /// Toast view-model — nil until appStore is available.
+    @State private var toastVM: SaveToastViewModel? = nil
+
     public init() {}
 
     public var body: some View {
@@ -128,6 +131,12 @@ public struct ContentView: View {
             OutputSettingsView(isPresented: $viewModel.showSettings)
                 // TODO: REQ-029 replaces OutputSettingsView placeholder
         }
+        // Post-stop toast (REQ-027) — overlaid at the bottom of the window.
+        .overlay(alignment: .bottom) {
+            if let tvm = toastVM {
+                SaveToast(viewModel: tvm)
+            }
+        }
         .task {
             // Build the SourcePickerViewModel once when the view appears.
             // We use .task so it runs on the MainActor when the view is
@@ -138,6 +147,8 @@ public struct ContentView: View {
                     permissionManager: store.permissionManager,
                     sourceCatalog: store.sourceCatalog
                 )
+                // Build SaveToastViewModel wired to the store's encodingQueue.
+                toastVM = SaveToastViewModel(queue: store.encodingQueue)
             }
         }
     }
