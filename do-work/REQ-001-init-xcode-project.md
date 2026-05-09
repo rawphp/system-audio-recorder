@@ -1,0 +1,37 @@
+# REQ-001: Initialize Xcode project for SwiftUI macOS app
+
+**UR:** UR-001
+**Status:** backlog
+**Created:** 2026-05-09
+**Layer:** supporting
+
+## Task
+
+Create the `SystemAudioToMP3.xcodeproj` Xcode project: SwiftUI macOS app target, deployment target macOS 14.4, Swift 5.10, universal (arm64 + x86_64). Bundle id `com.tomkaczocha.SystemAudioRecorder`. Establish the folder structure documented in Section 9 of the design spec.
+
+## Context
+
+This is the foundation REQ — every later REQ adds files inside this project. The spec (Section 9) defines the directory layout under groups `App/`, `AudioEngine/`, `Permissions/`, `Hotkey/`, `Resources/`, `Vendor/`, `Tests/`. Bundle id is the suite key used by `UserDefaults` (Section 6.2) so it must match.
+
+## Acceptance Criteria
+
+- [ ] `SystemAudioToMP3.xcodeproj` exists at the repo root
+- [ ] App target builds an empty SwiftUI window (default `App` + `ContentView` showing "System Audio Recorder")
+- [ ] Deployment target is `macOS 14.4`; build settings include both `arm64` and `x86_64` architectures
+- [ ] Bundle identifier is `com.tomkaczocha.SystemAudioRecorder`
+- [ ] Project shows the group structure from Section 9 (empty groups for modules not yet created are fine)
+
+## Verification Steps
+
+1. **build** `xcodebuild -project SystemAudioToMP3.xcodeproj -scheme SystemAudioToMP3 -configuration Debug build`
+   - Expected: BUILD SUCCEEDED, no warnings
+2. **runtime** Open the built `.app` from `~/Library/Developer/Xcode/DerivedData/.../Build/Products/Debug/`
+   - Expected: an empty window titled "System Audio Recorder" opens; closing it quits the app
+
+## Integration
+
+**Reachability:** App entry point is `App/SystemAudioToMP3App.swift` — the `@main` SwiftUI `App` struct. Cited in design spec Section 9.
+
+**Data dependencies:** None at this stage. Future REQs add `AppStore` and persisted settings keyed under bundle id `com.tomkaczocha.SystemAudioRecorder` (spec Section 6.2).
+
+**Service dependencies:** None — this REQ creates the project shell that all other modules will live inside.

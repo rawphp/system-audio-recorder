@@ -9,7 +9,7 @@ project:
 # Capture and verify use this list to gap-check briefs. Leave empty to
 # opt out of layer-coverage checks (capture will halt feature briefs
 # until either a layer list is declared or --no-layers is passed).
-layers: []
+layers: [audio_engine, ui, supporting]
 
 log:
   enabled: true
