@@ -9,5 +9,6 @@ struct SystemAudioToMP3App: App {
             ContentView()
                 .environment(\.appStore, appStore)
         }
+        .windowResizability(.contentSize)
     }
 }
