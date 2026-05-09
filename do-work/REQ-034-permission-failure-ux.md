@@ -28,7 +28,7 @@ Spec Section 6.5 specifies each path. Section 4.7 specifies lazy permission requ
 
 1. **test** Unit test sets `permissionManager.microphoneStatus = .denied`; asserts mic-involving options return `.disabled` with the documented affordance
    - Expected: test passes
-2. **runtime** Manual: deny mic in System Settings, return to app; click dropdown; take snapshot
+2. **ui** Manual: deny mic in System Settings, return to app; click dropdown; take snapshot
    - Expected: mic options greyed, affordance visible, link opens correct pane
 
 ## Integration

@@ -25,7 +25,7 @@ Spec Section 6.4 mandates 1-second WAV flushes during recording, sidecar JSON, a
 
 1. **test** Integration test starts a session, writes sidecar + 3 s of audio, kills the writer process; asserts a fresh `WAVWriter.scanForRecovery(in:)` returns one entry with the correct WAV URL
    - Expected: test passes
-2. **runtime** Manual: start a recording, force-quit the app, relaunch; assert recovery prompt appears
+2. **ui** Manual: start a recording, force-quit the app, relaunch; assert recovery prompt appears
    - Expected: prompt appears with correct date; chosen action completes
 
 ## Integration
