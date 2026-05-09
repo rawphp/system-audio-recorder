@@ -1,7 +1,7 @@
 # REQ-004: Configure entitlements and Info.plist for audio capture
 
 **UR:** UR-001
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-09
 **Layer:** supporting
 
@@ -15,11 +15,11 @@ Spec Section 5.8 calls out the audio-tap entitlement prompt wording. Spec Sectio
 
 ## Acceptance Criteria
 
-- [ ] `Resources/SystemAudioToMP3.entitlements` exists, no sandbox, audio-input entitlement enabled
-- [ ] `Info.plist` contains `NSMicrophoneUsageDescription` with human-readable text ("System Audio Recorder needs your microphone to mix it into recordings.")
-- [ ] `Info.plist` contains `NSAudioCaptureUsageDescription` with human-readable text ("System Audio Recorder records audio from other apps you choose.")
-- [ ] App target's "Code Sign Entitlements" build setting points to the entitlements file
-- [ ] `LSMinimumSystemVersion` in Info.plist is `14.4`
+- [x] `Resources/SystemAudioToMP3.entitlements` exists, no sandbox, audio-input entitlement enabled
+- [x] `Info.plist` contains `NSMicrophoneUsageDescription` with human-readable text ("System Audio Recorder needs your microphone to mix it into recordings.")
+- [x] `Info.plist` contains `NSAudioCaptureUsageDescription` with human-readable text ("System Audio Recorder records audio from other apps you choose.")
+- [x] App target's "Code Sign Entitlements" build setting points to the entitlements file
+- [x] `LSMinimumSystemVersion` in Info.plist is `14.4`
 
 ## Verification Steps
 
