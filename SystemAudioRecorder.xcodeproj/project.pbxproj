@@ -37,6 +37,7 @@
 		6A09C41AEDF8BABE6B37CC9C /* SourcePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6809B5A1D966577FAFC3D280 /* SourcePickerView.swift */; };
 		6C9B8AD1E3F5205D1911BA79 /* PermissionDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648A6B92BD137CEBA50519C2 /* PermissionDeepLink.swift */; };
 		6F4D177B72662411E1E25DDA /* WAVWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39A9CE9C2D786F3C0EF793FF /* WAVWriterTests.swift */; };
+		72B15C6D91EBEBFCBB333490 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9609880624BF4A708328B737 /* Assets.xcassets */; };
 		777E6EF1F7AE166B6A82F929 /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E46CE6B2283FDB27E0B1FF /* MeterRingBuffer.swift */; };
 		79F253369E5B90D5123AC145 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443FD72967A31686798897C9 /* AppSettingsTests.swift */; };
 		7F0AC032F3A0623E49A3C09A /* OutputSettingsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D8A1B20144D72927CE0B04 /* OutputSettingsViewTests.swift */; };
@@ -123,6 +124,7 @@
 		89D04A4AB8B1D689175038EA /* RecordControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordControlsView.swift; sourceTree = "<group>"; };
 		909AADF278F804AC2D248A1B /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		92358CE698DC488250E59867 /* LameEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoderTests.swift; sourceTree = "<group>"; };
+		9609880624BF4A708328B737 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		99570BD049373B8F342D5954 /* FormatNormalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatNormalizerTests.swift; sourceTree = "<group>"; };
 		99F6B792DEF2DC5A543E84EF /* MockAudioSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAudioSourceTests.swift; sourceTree = "<group>"; };
 		9B303DEF5005FC24A3DC37BC /* SourcePickerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePickerViewTests.swift; sourceTree = "<group>"; };
@@ -201,6 +203,7 @@
 			isa = PBXGroup;
 			children = (
 				BC0C8BE74E2A416F0AA4AB4E /* .gitkeep */,
+				9609880624BF4A708328B737 /* Assets.xcassets */,
 				8058F77363FF9FE88D424F2F /* Info.plist */,
 				BFA29538356DA6C85085D05D /* SystemAudioRecorder.entitlements */,
 			);
@@ -427,6 +430,7 @@
 			buildConfigurationList = 22FC5320576896EC49BDC3BF /* Build configuration list for PBXNativeTarget "SystemAudioRecorder" */;
 			buildPhases = (
 				8ABCE654B06500BA02FFC031 /* Sources */,
+				25151B4B767AB6A0EC27AB14 /* Resources */,
 				734AFD51BA9E4F00FE4F9FF0 /* Frameworks */,
 			);
 			buildRules = (
@@ -478,6 +482,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		25151B4B767AB6A0EC27AB14 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				72B15C6D91EBEBFCBB333490 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		45CE866B80B6AAE8541DAE6E /* Sources */ = {
@@ -737,12 +752,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/SystemAudioRecorder.entitlements;
-				CODE_SIGN_IDENTITY = "Developer ID Application";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "${DEVELOPMENT_TEAM}";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 3TB6CJ6ZHV;
+				DEVELOPMENT_TEAM = 3TB6CJ6ZHV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -756,7 +770,7 @@
 				OTHER_CODE_SIGN_FLAGS = "--timestamp --options runtime";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tomkaczocha.SystemAudioRecorder;
 				PRODUCT_NAME = SystemAudioRecorder;
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 			};
 			name = Release;

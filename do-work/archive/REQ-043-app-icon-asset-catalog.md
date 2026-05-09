@@ -1,7 +1,7 @@
 # REQ-043: Add App Icon Asset Catalog
 
 **UR:** UR-003
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** supporting
 
@@ -34,12 +34,12 @@ Source `rsa-icon.png` is 500×500 RGBA — must be resized via `sips` to each re
 
 ## Acceptance Criteria
 
-- [ ] `Resources/Assets.xcassets/AppIcon.appiconset/Contents.json` exists and declares all 10 standard macOS sizes (16/32/128/256/512 at 1x and 2x).
-- [ ] All 10 PNG files are present in the appiconset, sized correctly (verified with `sips -g pixelWidth -g pixelHeight`).
-- [ ] `project.yml` sets `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in the SystemAudioRecorder target's base settings.
-- [ ] `make build` succeeds and the produced `.app` bundle contains `Assets.car` with an AppIcon entry (verified via `assetutil --info` on `Contents/Resources/Assets.car`).
-- [ ] Launching the built `.app` shows the rsa-icon in the Dock and Cmd-Tab switcher (not the generic placeholder icon).
-- [ ] Source `rsa-icon.png` at the repo root is moved into the project (kept as the master) or removed — the loose file should not remain at the repo root after this REQ lands.
+- [x] `Resources/Assets.xcassets/AppIcon.appiconset/Contents.json` exists and declares all 10 standard macOS sizes (16/32/128/256/512 at 1x and 2x).
+- [x] All 10 PNG files are present in the appiconset, sized correctly (verified with `sips -g pixelWidth -g pixelHeight`).
+- [x] `project.yml` sets `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in the SystemAudioRecorder target's base settings.
+- [x] `make build` succeeds and the produced `.app` bundle contains `Assets.car` with an AppIcon entry (verified via `assetutil --info` on `Contents/Resources/Assets.car`).
+- [ ] Launching the built `.app` shows the rsa-icon in the Dock and Cmd-Tab switcher (not the generic placeholder icon). _(Pending visual confirmation by user — Assets.car contains AppIcon renditions at all 10 sizes and AppIcon.icns is in the bundle.)_
+- [x] Source `rsa-icon.png` moved to `Resources/AppIconSource.png` as the master — no loose file at repo root.
 
 ## Verification Steps
 
@@ -62,4 +62,12 @@ Source `rsa-icon.png` is 500×500 RGBA — must be resized via `sips` to each re
 
 ## Assets
 
-- `rsa-icon.png` — 500×500 RGBA source icon at repo root, to be downscaled into the appiconset.
+- `Resources/AppIconSource.png` — 500×500 RGBA source icon (master), downscaled into the appiconset.
+
+## Outputs
+
+- `Resources/Assets.xcassets/AppIcon.appiconset/Contents.json` — appiconset manifest declaring 10 macOS sizes
+- `Resources/Assets.xcassets/AppIcon.appiconset/icon_*.png` — 10 generated PNG variants (16→1024 px)
+- `Resources/Assets.xcassets/Contents.json` — asset catalog root manifest
+- `Resources/AppIconSource.png` — relocated source master (was `rsa-icon.png` at repo root)
+- `project.yml` — adds `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` to SystemAudioRecorder target
