@@ -38,6 +38,7 @@
 		75DD71C9D0CBBD4418BD2053 /* DockPolicyControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BF7E4350CDE80A70A360E4 /* DockPolicyControllerTests.swift */; };
 		7962F5F5C2BA974F11086ABF /* SaveToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */; };
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
+		7C09CF1B56D4C20C1C875CC9 /* MockAudioSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B02A2C347896134C424FE9 /* MockAudioSourceTests.swift */; };
 		7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */; };
 		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
 		8361D76829BC70B13704954E /* EncodingJobsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C65CC402CA25FB9B797FAD /* EncodingJobsViewTests.swift */; };
@@ -48,6 +49,7 @@
 		9492ACE5C7C16660429CF055 /* LameEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C681A5C225CE19CCE0F91F97 /* LameEncoderTests.swift */; };
 		96514D3989DC243891B84CCC /* ErrorSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C58282DA51E18C5A61E47A /* ErrorSurface.swift */; };
 		9A3B45779C44A9D4D5B7EB05 /* PermissionDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5435977FAA5DDE373959469 /* PermissionDeepLink.swift */; };
+		9FB2FDE1643C5D32C83881B8 /* MockAudioSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79ECC58508F5AC7859121ACC /* MockAudioSource.swift */; };
 		A7A4D8EC84BA2F11F3034DF2 /* MixLevelMeterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F11959D4EDAC3D56ADAAA92 /* MixLevelMeterView.swift */; };
 		AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1836DFD74026FFB5AED13075 /* WAVWriter.swift */; };
 		AF01A2E7039E5AD9FE7863C0 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFF361DBFF67097F8220A8F /* HotkeyManagerTests.swift */; };
@@ -102,12 +104,14 @@
 		458596604046914E352942E4 /* ProcessTapCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTapCapture.swift; sourceTree = "<group>"; };
 		4B9A488F29EA8095D03D910C /* RecordingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
 		51DDCCD136484A0F6E1E0579 /* FormatNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatNormalizer.swift; sourceTree = "<group>"; };
+		56B02A2C347896134C424FE9 /* MockAudioSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAudioSourceTests.swift; sourceTree = "<group>"; };
 		57DA0AC7E833BEEEDAB32476 /* SystemAudioToMP3App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioToMP3App.swift; sourceTree = "<group>"; };
 		5A53E036CF32036C7B423296 /* SystemAudioToMP3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SystemAudioToMP3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B9648610DFF22366A3902FD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5F11959D4EDAC3D56ADAAA92 /* MixLevelMeterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixLevelMeterView.swift; sourceTree = "<group>"; };
 		691DD1DAC2FE9CD1FD67DA79 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		6B5AD176F4CEB52EC3CCE22A /* RecordControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordControlsView.swift; sourceTree = "<group>"; };
+		79ECC58508F5AC7859121ACC /* MockAudioSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAudioSource.swift; sourceTree = "<group>"; };
 		7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerGraphTests.swift; sourceTree = "<group>"; };
 		7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToastTests.swift; sourceTree = "<group>"; };
 		7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoder.swift; sourceTree = "<group>"; };
@@ -302,6 +306,7 @@
 				7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */,
 				1E725D1ADA39F3AFD014FAAB /* MixerPanelViewTests.swift */,
 				931D0A5F90DDDD916E343E6E /* MixLevelMeterViewTests.swift */,
+				56B02A2C347896134C424FE9 /* MockAudioSourceTests.swift */,
 				06D9201D3F9A19490B444AD2 /* OutputSettingsViewTests.swift */,
 				DA0F342C1CEEFE86C1FC4D91 /* PermissionFailureUXTests.swift */,
 				2CB9DF2D295AA38A84F58F14 /* PermissionManagerTests.swift */,
@@ -312,6 +317,7 @@
 				D585DEE586C6085698CCFDDD /* SourcePickerViewTests.swift */,
 				D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */,
 				DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */,
+				EA6DFA593C674E344FD0B5DE /* Fixtures */,
 			);
 			path = AudioEngineTests;
 			sourceTree = "<group>";
@@ -354,6 +360,14 @@
 				0255BD09A9343F8248D93EF0 /* MenuBarController.swift */,
 			);
 			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		EA6DFA593C674E344FD0B5DE /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				79ECC58508F5AC7859121ACC /* MockAudioSource.swift */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		ECCF08E6FCB5DEBBC8726E99 /* Meter */ = {
@@ -517,6 +531,8 @@
 				10B954A6514CBFBF788B3326 /* MixLevelMeterViewTests.swift in Sources */,
 				07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */,
 				1D6288D2CB24204B6DEFDE06 /* MixerPanelViewTests.swift in Sources */,
+				9FB2FDE1643C5D32C83881B8 /* MockAudioSource.swift in Sources */,
+				7C09CF1B56D4C20C1C875CC9 /* MockAudioSourceTests.swift in Sources */,
 				284A17330A1621DFDF611F09 /* OutputSettingsViewTests.swift in Sources */,
 				6434E3B84DDEB1D531C1E2B5 /* PermissionFailureUXTests.swift in Sources */,
 				F1FA46A50509D59548D8A075 /* PermissionManagerTests.swift in Sources */,
