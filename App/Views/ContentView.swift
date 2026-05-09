@@ -30,22 +30,6 @@ public final class ContentViewModel {
 
 // NOTE: SourcePickerView is now the real implementation in App/Views/SourcePickerView.swift (REQ-024).
 
-/// Placeholder for the big record/pause/stop button (REQ-025 replaces this).
-// TODO: REQ-025 replaces this
-struct RecordControlsView: View {
-    var body: some View {
-        Button {
-            // TODO: REQ-025 wires toggleRecording()
-        } label: {
-            Label("Start Recording", systemImage: "record.circle")
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .padding(.horizontal, 40)
-    }
-}
 
 /// Placeholder for the unified mix-level meter + dB readout (REQ-026 replaces this).
 // TODO: REQ-026 replaces this
@@ -145,8 +129,8 @@ public struct ContentView: View {
                 SourcePickerView(viewModel: spVM)
             }
 
-            // ── Record controls placeholder ───────────────────────────────
-            RecordControlsView() // TODO: REQ-025 replaces this
+            // ── Record controls (REQ-025) ─────────────────────────────────
+            RecordControlsView()
 
             Spacer()
 
