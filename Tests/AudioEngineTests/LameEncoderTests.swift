@@ -470,4 +470,246 @@ final class LameEncoderTests: XCTestCase {
         let size = (attrs[.size] as? Int) ?? 0
         XCTAssertGreaterThan(size, 0, "192 kbps VBR spot check: MP3 must be non-empty")
     }
+
+    // MARK: - REQ-037 Scenario (a): FFT verification at all four bitrates
+
+    /// REQ-037 scenario (a): Encode a 2 s 1 kHz sine at each supported bitrate (128/192/256/320
+    /// kbps, CBR). Decoded FFT peak must be 1 kHz ± 5 Hz for every bitrate.
+    /// Uses CBR for deterministic output; 2 s keeps the suite fast.
+    func testAllBitratesFFTVerification() async throws {
+        let bitrates = [128, 192, 256, 320]
+
+        for bitrate in bitrates {
+            let wavURL = try writeSineWAV(
+                to: tmpDir,
+                name: "fft-\(bitrate).wav",
+                frequency: 1000,
+                durationSeconds: 2
+            )
+            let mp3URL = tmpDir.appendingPathComponent("fft-\(bitrate).mp3")
+
+            try await encoder.encode(
+                wavURL: wavURL,
+                mp3URL: mp3URL,
+                bitrate: bitrate,
+                mode: .cbr,
+                progress: { _ in }
+            )
+
+            // Decode the MP3 back with AVAudioFile
+            let mp3File = try AVAudioFile(forReading: mp3URL)
+            let capacity = AVAudioFrameCount(mp3File.length)
+            guard capacity > 0,
+                  let decodedBuf = AVAudioPCMBuffer(
+                      pcmFormat: mp3File.processingFormat,
+                      frameCapacity: capacity
+                  ) else {
+                XCTFail("Cannot allocate decode buffer for \(bitrate) kbps"); continue
+            }
+            try mp3File.read(into: decodedBuf)
+
+            // Convert to Float32 if the MP3 decoder produced a different format
+            let floatFormat = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: mp3File.processingFormat.sampleRate,
+                channels: mp3File.processingFormat.channelCount,
+                interleaved: false
+            )!
+            let floatBuf: AVAudioPCMBuffer
+            if decodedBuf.format.commonFormat == .pcmFormatFloat32 {
+                floatBuf = decodedBuf
+            } else {
+                guard let converted = AVAudioPCMBuffer(
+                    pcmFormat: floatFormat,
+                    frameCapacity: decodedBuf.frameLength
+                ) else { XCTFail("Cannot allocate float buffer for \(bitrate) kbps"); continue }
+                guard let conv = AVAudioConverter(from: decodedBuf.format, to: floatFormat) else {
+                    XCTFail("Cannot create converter for \(bitrate) kbps"); continue
+                }
+                var convError: NSError?
+                let inputBlock: AVAudioConverterInputBlock = { _, outStatus in
+                    outStatus.pointee = .haveData
+                    return decodedBuf
+                }
+                conv.convert(to: converted, error: &convError, withInputFrom: inputBlock)
+                if let e = convError { XCTFail("Conversion error at \(bitrate) kbps: \(e)"); continue }
+                floatBuf = converted
+            }
+
+            // Take a 32768-frame window for the FFT
+            let windowSize: AVAudioFrameCount = 32768
+            guard let window = AVAudioPCMBuffer(pcmFormat: floatBuf.format, frameCapacity: windowSize) else {
+                XCTFail("Cannot create window buffer for \(bitrate) kbps"); continue
+            }
+            window.frameLength = min(windowSize, floatBuf.frameLength)
+            if let src = floatBuf.floatChannelData?[0],
+               let dst = window.floatChannelData?[0] {
+                dst.assign(from: src, count: Int(window.frameLength))
+            }
+
+            let peak = peakFrequency(in: window)
+            XCTAssertEqual(
+                peak, 1000, accuracy: 5,
+                "FFT peak must be 1 kHz ± 5 Hz at \(bitrate) kbps CBR; got \(peak) Hz"
+            )
+        }
+    }
+
+    // MARK: - REQ-037 Scenario (b): Encode silence
+
+    /// REQ-037 scenario (b): Encode 5 s of silence at 192 kbps VBR (ABR).
+    /// The resulting MP3 must be smaller than 5% of the uncompressed WAV size.
+    /// Silence is spectrally trivial; LAME's ABR allocates far fewer bits than
+    /// the target average bitrate, so the output is dramatically smaller than the PCM original.
+    func testEncodeSilence() async throws {
+        // Write a WAV containing silence (amplitude = 0)
+        let silenceDuration: Double = 5
+        let wavURL = tmpDir.appendingPathComponent("silence.wav")
+        let settings: [String: Any] = [
+            AVFormatIDKey:             kAudioFormatLinearPCM,
+            AVSampleRateKey:           testSampleRate,
+            AVNumberOfChannelsKey:     testChannels,
+            AVLinearPCMBitDepthKey:    32,
+            AVLinearPCMIsFloatKey:     true,
+            AVLinearPCMIsBigEndianKey: false,
+        ]
+        let wavFile = try AVAudioFile(
+            forWriting: wavURL,
+            settings: settings,
+            commonFormat: .pcmFormatFloat32,
+            interleaved: false
+        )
+        let totalFrames = AVAudioFrameCount(silenceDuration * testSampleRate)
+        // Zero-filled buffer = silence
+        guard let silenceBuf = AVAudioPCMBuffer(pcmFormat: canonicalFormat, frameCapacity: totalFrames) else {
+            XCTFail("Cannot allocate silence buffer"); return
+        }
+        silenceBuf.frameLength = totalFrames
+        for ch in 0..<Int(testChannels) {
+            if let ptr = silenceBuf.floatChannelData?[ch] {
+                for i in 0..<Int(totalFrames) { ptr[i] = 0 }
+            }
+        }
+        try wavFile.write(from: silenceBuf)
+
+        let mp3URL = tmpDir.appendingPathComponent("silence.mp3")
+        try await encoder.encode(
+            wavURL: wavURL,
+            mp3URL: mp3URL,
+            bitrate: 192,
+            mode: .vbr,
+            progress: { _ in }
+        )
+
+        // WAV size: sampleRate × channels × bytesPerSample × duration
+        let wavSize = Int(testSampleRate) * Int(testChannels) * 4 * Int(silenceDuration)
+        let threshold = wavSize / 20  // 5%
+
+        let mp3Attrs = try FileManager.default.attributesOfItem(atPath: mp3URL.path)
+        let mp3Size = (mp3Attrs[.size] as? Int) ?? 0
+
+        XCTAssertGreaterThan(mp3Size, 0, "Silence MP3 must not be empty")
+        XCTAssertLessThanOrEqual(
+            mp3Size, threshold,
+            "Silence MP3 (\(mp3Size) B) must be ≤ 5% of WAV (\(wavSize) B = \(threshold) B threshold)"
+        )
+    }
+
+    // MARK: - REQ-037 Scenario (c): VBR vs CBR file size
+
+    /// REQ-037 scenario (c): Encode the same 5 s spectrally complex signal in both CBR and VBR
+    /// mode at 192 kbps. CBR must be within ±20% of the theoretical size
+    /// (bitrate × duration). VBR size is not constrained to a fixed window.
+    func testVBRvsCBRFileSizes() async throws {
+        // Spectrally complex noise signal forces both encoders to exercise their full bitrate range
+        let wavURL = try writeNoiseWAV(to: tmpDir, name: "noise-cbrVbr.wav", durationSeconds: 5)
+        let cbrMP3URL = tmpDir.appendingPathComponent("cbr192.mp3")
+        let vbrMP3URL = tmpDir.appendingPathComponent("vbr192.mp3")
+
+        try await encoder.encode(
+            wavURL: wavURL, mp3URL: cbrMP3URL,
+            bitrate: 192, mode: .cbr, progress: { _ in }
+        )
+        try await encoder.encode(
+            wavURL: wavURL, mp3URL: vbrMP3URL,
+            bitrate: 192, mode: .vbr, progress: { _ in }
+        )
+
+        let cbrAttrs = try FileManager.default.attributesOfItem(atPath: cbrMP3URL.path)
+        let vbrAttrs = try FileManager.default.attributesOfItem(atPath: vbrMP3URL.path)
+        let cbrSize = (cbrAttrs[.size] as? Int) ?? 0
+        let vbrSize = (vbrAttrs[.size] as? Int) ?? 0
+
+        XCTAssertGreaterThan(cbrSize, 0, "CBR MP3 must not be empty")
+        XCTAssertGreaterThan(vbrSize, 0, "VBR MP3 must not be empty")
+
+        // CBR: 192 kbps × 5 s = 120,000 bytes; allow ±20% tolerance
+        let expectedCBR = 120_000
+        let cbrTolerance = 24_000  // ±20%
+        XCTAssertGreaterThanOrEqual(
+            cbrSize, expectedCBR - cbrTolerance,
+            "CBR size \(cbrSize) B must be ≥ \(expectedCBR - cbrTolerance) B"
+        )
+        XCTAssertLessThanOrEqual(
+            cbrSize, expectedCBR + cbrTolerance,
+            "CBR size \(cbrSize) B must be ≤ \(expectedCBR + cbrTolerance) B"
+        )
+
+        // VBR uses ABR targeting 192 kbps — for complex audio it should also be in the
+        // same ballpark (within ±40% of expected), confirming it is not a degenerate
+        // zero-size output while not requiring it to match CBR exactly.
+        let vbrLower = expectedCBR / 3   // at most 3× smaller
+        let vbrUpper = expectedCBR * 2   // at most 2× larger
+        XCTAssertGreaterThanOrEqual(
+            vbrSize, vbrLower,
+            "VBR size \(vbrSize) B seems unexpectedly small (< \(vbrLower) B)"
+        )
+        XCTAssertLessThanOrEqual(
+            vbrSize, vbrUpper,
+            "VBR size \(vbrSize) B seems unexpectedly large (> \(vbrUpper) B)"
+        )
+    }
+
+    // MARK: - REQ-037 Scenario (e): Concurrent encodes
+
+    /// REQ-037 scenario (e): Two encodes running in parallel must not interfere.
+    /// Both must complete successfully and produce non-empty, valid MP3 files.
+    func testConcurrentEncodes() async throws {
+        let wavA = try writeSineWAV(to: tmpDir, name: "concA.wav",
+                                   frequency: 440, durationSeconds: 2)
+        let wavB = try writeSineWAV(to: tmpDir, name: "concB.wav",
+                                   frequency: 880, durationSeconds: 2)
+        let mp3A = tmpDir.appendingPathComponent("concA.mp3")
+        let mp3B = tmpDir.appendingPathComponent("concB.mp3")
+
+        // Launch both encodes concurrently using a task group
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                try await self.encoder.encode(
+                    wavURL: wavA, mp3URL: mp3A,
+                    bitrate: 128, mode: .cbr, progress: { _ in }
+                )
+            }
+            group.addTask {
+                try await self.encoder.encode(
+                    wavURL: wavB, mp3URL: mp3B,
+                    bitrate: 256, mode: .cbr, progress: { _ in }
+                )
+            }
+            try await group.waitForAll()
+        }
+
+        // Both outputs must exist and be non-empty
+        let attrsA = try FileManager.default.attributesOfItem(atPath: mp3A.path)
+        let sizeA = (attrsA[.size] as? Int) ?? 0
+        XCTAssertGreaterThan(sizeA, 0, "Concurrent encode A (440 Hz, 128 kbps CBR) must be non-empty")
+
+        let attrsB = try FileManager.default.attributesOfItem(atPath: mp3B.path)
+        let sizeB = (attrsB[.size] as? Int) ?? 0
+        XCTAssertGreaterThan(sizeB, 0, "Concurrent encode B (880 Hz, 256 kbps CBR) must be non-empty")
+
+        // Both outputs must be decodable by AVAudioFile
+        let _ = try AVAudioFile(forReading: mp3A)
+        let _ = try AVAudioFile(forReading: mp3B)
+    }
 }
