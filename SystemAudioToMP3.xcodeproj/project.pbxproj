@@ -12,6 +12,7 @@
 		0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */; };
 		0E8602AEDBA11A8DA831C60F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 42F6F183B7D9C8F6EF222164 /* KeyboardShortcuts */; };
 		10B954A6514CBFBF788B3326 /* MixLevelMeterViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D0A5F90DDDD916E343E6E /* MixLevelMeterViewTests.swift */; };
+		122E4257BE7DA0D13AA77B81 /* DockPolicyController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875860B09E57E21EE7A2B55F /* DockPolicyController.swift */; };
 		188E9C67477AC7F65CC41251 /* lame.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */; };
 		1D6288D2CB24204B6DEFDE06 /* MixerPanelViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E725D1ADA39F3AFD014FAAB /* MixerPanelViewTests.swift */; };
 		1DFE9D24CA8B0CEC5CB44619 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0255BD09A9343F8248D93EF0 /* MenuBarController.swift */; };
@@ -32,6 +33,7 @@
 		58FDF46E2D66F1123B3F6AD6 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B9A488F29EA8095D03D910C /* RecordingSession.swift */; };
 		6A5CC80D047842E67F90EAC3 /* RecordingSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */; };
 		70A489BAB699BFF4C79059B2 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AAB2B337936132E46ABCBB /* AppSettings.swift */; };
+		75DD71C9D0CBBD4418BD2053 /* DockPolicyControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BF7E4350CDE80A70A360E4 /* DockPolicyControllerTests.swift */; };
 		7962F5F5C2BA974F11086ABF /* SaveToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFEEF00E8356B5C5D158D90 /* SaveToastTests.swift */; };
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
 		7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */; };
@@ -106,6 +108,7 @@
 		7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoder.swift; sourceTree = "<group>"; };
 		804127FF177E5F203BED7EA4 /* SystemAudioToMP3.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SystemAudioToMP3.entitlements; sourceTree = "<group>"; };
 		84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSessionTests.swift; sourceTree = "<group>"; };
+		875860B09E57E21EE7A2B55F /* DockPolicyController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockPolicyController.swift; sourceTree = "<group>"; };
 		8AC45F6626DC38654CC0F8AB /* SaveToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToast.swift; sourceTree = "<group>"; };
 		903A2DABBF22B8F211727022 /* RecordControlsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordControlsViewTests.swift; sourceTree = "<group>"; };
 		92DD7741280FE37E3322907A /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
@@ -127,6 +130,7 @@
 		DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterTests.swift; sourceTree = "<group>"; };
 		DB0761363B64A2C4F6D21F77 /* OutputSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputSettingsView.swift; sourceTree = "<group>"; };
 		E10FDC107B005539E0B08CC1 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		E1BF7E4350CDE80A70A360E4 /* DockPolicyControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockPolicyControllerTests.swift; sourceTree = "<group>"; };
 		EC8B057452AFFA45451A60E0 /* MeterTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterTap.swift; sourceTree = "<group>"; };
 		F054DB47B580A040E918981D /* SourcePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePickerView.swift; sourceTree = "<group>"; };
 		F0AAB2B337936132E46ABCBB /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -218,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				92DD7741280FE37E3322907A /* AppStore.swift */,
+				875860B09E57E21EE7A2B55F /* DockPolicyController.swift */,
 				57DA0AC7E833BEEEDAB32476 /* SystemAudioToMP3App.swift */,
 				D2FB585E6789608BB1380DF7 /* MenuBar */,
 				32BABBC14FABE3BBA026C733 /* Settings */,
@@ -266,6 +271,7 @@
 				DAA159C2C5FEAD89C7F41A98 /* AppStoreTests.swift */,
 				9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */,
 				0BE8C3B55431827861378CB2 /* ContentViewTests.swift */,
+				E1BF7E4350CDE80A70A360E4 /* DockPolicyControllerTests.swift */,
 				01C65CC402CA25FB9B797FAD /* EncodingJobsViewTests.swift */,
 				3DE541C93D30129875B74D71 /* EncodingQueueTests.swift */,
 				45087AD9F50EEF7CA29E41E0 /* FormatNormalizerTests.swift */,
@@ -441,6 +447,7 @@
 				CDB6B336A798DD524764F410 /* AppStore.swift in Sources */,
 				FF5103791994F34BBFEBC95E /* AudioSourceCatalog.swift in Sources */,
 				CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */,
+				122E4257BE7DA0D13AA77B81 /* DockPolicyController.swift in Sources */,
 				0B1629AC78D00A658800821E /* EncodingJobsView.swift in Sources */,
 				2E859A44DEB18515F4080ADD /* EncodingQueue.swift in Sources */,
 				48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */,
@@ -475,6 +482,7 @@
 				22D91EFBC1FA217D126D7794 /* AppStoreTests.swift in Sources */,
 				B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */,
 				320523902F001F34E9F91BB2 /* ContentViewTests.swift in Sources */,
+				75DD71C9D0CBBD4418BD2053 /* DockPolicyControllerTests.swift in Sources */,
 				8361D76829BC70B13704954E /* EncodingJobsViewTests.swift in Sources */,
 				0C262BF3CA30E99536F3D2A0 /* EncodingQueueTests.swift in Sources */,
 				C84B19A234F26028C87F45E6 /* FormatNormalizerTests.swift in Sources */,

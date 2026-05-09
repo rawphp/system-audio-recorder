@@ -9,6 +9,10 @@ struct SystemAudioToMP3App: App {
     /// Initialized once in `.onAppear` to ensure AppKit is ready.
     @State private var menuBarController: MenuBarController?
 
+    /// Dock policy controller — binds `AppSettings.showInDock` to
+    /// `NSApp.setActivationPolicy(_:)`. Kept alive for the app lifetime.
+    @State private var dockPolicyController: DockPolicyController?
+
     var body: some Scene {
         WindowGroup("System Audio Recorder") {
             ContentView()
@@ -18,6 +22,12 @@ struct SystemAudioToMP3App: App {
                         let renderer = NSStatusItemRenderer()
                         let controller = MenuBarController(store: appStore, renderer: renderer)
                         menuBarController = controller
+                        controller.start()
+                    }
+
+                    if dockPolicyController == nil {
+                        let controller = DockPolicyController(settings: appStore.settings)
+                        dockPolicyController = controller
                         controller.start()
                     }
                 }
