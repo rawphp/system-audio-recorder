@@ -1,0 +1,30 @@
+# do-work configuration
+# Edit this file to customize agent behavior.
+
+project:
+  name: "system-audio-to-mp3"
+
+# Declare your project's layers, e.g. [frontend, backend] for a web app,
+# [commands, core, output] for a CLI, [agents, commands, templates] for do-work.
+# Capture and verify use this list to gap-check briefs. Leave empty to
+# opt out of layer-coverage checks (capture will halt feature briefs
+# until either a layer list is declared or --no-layers is passed).
+layers: []
+
+log:
+  enabled: true
+  platforms: [blog]          # e.g. [x, linkedin]
+  drafts_per_platform: 2
+  batch_size: 2            # drafts per batch (2 drafts + More + Skip = 4 options in AskUserQuestion)
+  audience: ""           # e.g. "indie hackers", "enterprise devs", "startup founders"
+  voice: ""              # e.g. "casual and direct", "thoughtful and technical"
+  max_chars:             # per-platform character ceiling the log agent must keep each draft under
+    x: 280
+    blog: 300
+    linkedin: 1300
+
+test:
+  suite_command: ""      # e.g. "./vendor/bin/pest", "npx vitest run", "npm test"
+
+next_steps:
+  enabled: true         # when true, agents present next-step options via AskUserQuestion after each phase
