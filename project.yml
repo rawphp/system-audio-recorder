@@ -39,10 +39,10 @@ targets:
         optional: true
       - path: Resources
         optional: true
-      - path: Vendor
-        optional: true
     dependencies:
       - package: KeyboardShortcuts
+      - framework: Vendor/lame.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_NAME: SystemAudioToMP3
