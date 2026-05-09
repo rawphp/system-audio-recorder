@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // MARK: - ContentViewModel
@@ -27,21 +28,7 @@ public final class ContentViewModel {
 // requirements today. The stub is replaced by the real implementation in the
 // REQ indicated by the TODO comment.
 
-/// Placeholder for the source dropdown (REQ-024 replaces this).
-// TODO: REQ-024 replaces this
-struct SourcePickerView: View {
-    var body: some View {
-        HStack {
-            Text("Recording from:")
-                .foregroundStyle(.secondary)
-            Text("Everything")
-                .fontWeight(.medium)
-            Image(systemName: "chevron.down")
-                .imageScale(.small)
-        }
-        .padding(.horizontal)
-    }
-}
+// NOTE: SourcePickerView is now the real implementation in App/Views/SourcePickerView.swift (REQ-024).
 
 /// Placeholder for the big record/pause/stop button (REQ-025 replaces this).
 // TODO: REQ-025 replaces this
@@ -127,6 +114,11 @@ public struct ContentView: View {
     /// UI-only state owned by the view-model (testable without rendering).
     @State private var viewModel = ContentViewModel()
 
+    /// Source picker view model — built lazily from appStore the first time the
+    /// view renders. Falls back to a minimal dummy store if no store is injected
+    /// (e.g. in #Preview or unit-test contexts that don't inject AppStore).
+    @State private var sourcePickerVM: SourcePickerViewModel? = nil
+
     public init() {}
 
     public var body: some View {
@@ -148,8 +140,10 @@ public struct ContentView: View {
             .padding(.horizontal)
             .padding(.top, 12)
 
-            // ── Source picker placeholder ─────────────────────────────────
-            SourcePickerView() // TODO: REQ-024 replaces this
+            // ── Source picker (REQ-024) ───────────────────────────────────
+            if let spVM = sourcePickerVM {
+                SourcePickerView(viewModel: spVM)
+            }
 
             // ── Record controls placeholder ───────────────────────────────
             RecordControlsView() // TODO: REQ-025 replaces this
@@ -167,6 +161,18 @@ public struct ContentView: View {
         .sheet(isPresented: $viewModel.showSettings) {
             OutputSettingsView(isPresented: $viewModel.showSettings)
                 // TODO: REQ-029 replaces OutputSettingsView placeholder
+        }
+        .task {
+            // Build the SourcePickerViewModel once when the view appears.
+            // We use .task so it runs on the MainActor when the view is
+            // first displayed and whenever appStore changes.
+            if let store = appStore {
+                sourcePickerVM = SourcePickerViewModel(
+                    settings: store.settings,
+                    permissionManager: store.permissionManager,
+                    sourceCatalog: store.sourceCatalog
+                )
+            }
         }
     }
 }

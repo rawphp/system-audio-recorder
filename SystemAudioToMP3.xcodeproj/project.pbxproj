@@ -18,6 +18,7 @@
 		307DAA04B3DA7A5B6DF33ECA /* LameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8A3DDD7570D8A31E8E637F /* LameEncoder.swift */; };
 		320523902F001F34E9F91BB2 /* ContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE8C3B55431827861378CB2 /* ContentViewTests.swift */; };
 		321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D2214898D61EE387033CCC /* LameVersionTest.swift */; };
+		47ED9DF48C3F0DF74D3D737B /* SourcePickerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D585DEE586C6085698CCFDDD /* SourcePickerViewTests.swift */; };
 		48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DDCCD136484A0F6E1E0579 /* FormatNormalizer.swift */; };
 		4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */; };
 		5457FB4B84966164F27232CD /* WAVWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */; };
@@ -27,6 +28,7 @@
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
 		7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DF2FD1BCF7AEC91EC10964 /* PermissionManager.swift */; };
 		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
+		85CACA34277B8496F4AA4766 /* SourcePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F054DB47B580A040E918981D /* SourcePickerView.swift */; };
 		9492ACE5C7C16660429CF055 /* LameEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C681A5C225CE19CCE0F91F97 /* LameEncoderTests.swift */; };
 		AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1836DFD74026FFB5AED13075 /* WAVWriter.swift */; };
 		AF01A2E7039E5AD9FE7863C0 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFF361DBFF67097F8220A8F /* HotkeyManagerTests.swift */; };
@@ -91,12 +93,14 @@
 		D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterRingBuffer.swift; sourceTree = "<group>"; };
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		D274654D7BDCC37DD4E742B2 /* EncodingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingQueue.swift; sourceTree = "<group>"; };
+		D585DEE586C6085698CCFDDD /* SourcePickerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePickerViewTests.swift; sourceTree = "<group>"; };
 		D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterRecoveryTests.swift; sourceTree = "<group>"; };
 		D9D2214898D61EE387033CCC /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
 		DAA159C2C5FEAD89C7F41A98 /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
 		DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterTests.swift; sourceTree = "<group>"; };
 		E10FDC107B005539E0B08CC1 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		EC8B057452AFFA45451A60E0 /* MeterTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterTap.swift; sourceTree = "<group>"; };
+		F054DB47B580A040E918981D /* SourcePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePickerView.swift; sourceTree = "<group>"; };
 		F0AAB2B337936132E46ABCBB /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		F7305ECE0C12BDC5984DA297 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureTests.swift; sourceTree = "<group>"; };
@@ -243,6 +247,7 @@
 				2CB9DF2D295AA38A84F58F14 /* PermissionManagerTests.swift */,
 				22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */,
 				84F94C86553FF79CBA1215DF /* RecordingSessionTests.swift */,
+				D585DEE586C6085698CCFDDD /* SourcePickerViewTests.swift */,
 				D5BF8AC29D8A64947CB8F3E6 /* WAVWriterRecoveryTests.swift */,
 				DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */,
 			);
@@ -261,6 +266,7 @@
 			isa = PBXGroup;
 			children = (
 				400CF837AB2D02454A0D3B72 /* ContentView.swift */,
+				F054DB47B580A040E918981D /* SourcePickerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -398,6 +404,7 @@
 				7FAB6A01EAE59F069BDF4023 /* PermissionManager.swift in Sources */,
 				AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */,
 				58FDF46E2D66F1123B3F6AD6 /* RecordingSession.swift in Sources */,
+				85CACA34277B8496F4AA4766 /* SourcePickerView.swift in Sources */,
 				F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */,
 				AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */,
 			);
@@ -421,6 +428,7 @@
 				F1FA46A50509D59548D8A075 /* PermissionManagerTests.swift in Sources */,
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
 				6A5CC80D047842E67F90EAC3 /* RecordingSessionTests.swift in Sources */,
+				47ED9DF48C3F0DF74D3D737B /* SourcePickerViewTests.swift in Sources */,
 				1F9722935AF827FB75B81230 /* WAVWriterRecoveryTests.swift in Sources */,
 				5457FB4B84966164F27232CD /* WAVWriterTests.swift in Sources */,
 			);
