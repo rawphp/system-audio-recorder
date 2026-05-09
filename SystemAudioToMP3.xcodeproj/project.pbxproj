@@ -14,6 +14,8 @@
 		AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458596604046914E352942E4 /* ProcessTapCapture.swift */; };
 		B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */; };
 		CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400CF837AB2D02454A0D3B72 /* ContentView.swift */; };
+		E1DD11C5C2A3C67490604BF2 /* MicrophoneCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */; };
+		EA3FE9E45B41C3C16F8BF1E3 /* MicrophoneCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */; };
 		F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA0AC7E833BEEEDAB32476 /* SystemAudioToMP3App.swift */; };
 		FF5103791994F34BBFEBC95E /* AudioSourceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E9266D32F8840BDAFA64AD /* AudioSourceCatalog.swift */; };
 /* End PBXBuildFile section */
@@ -29,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCapture.swift; sourceTree = "<group>"; };
 		22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTapCaptureTests.swift; sourceTree = "<group>"; };
 		2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = lame.xcframework; path = Vendor/lame.xcframework; sourceTree = "<group>"; };
 		400CF837AB2D02454A0D3B72 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -44,6 +47,7 @@
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		D9D2214898D61EE387033CCC /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
 		F7305ECE0C12BDC5984DA297 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureTests.swift; sourceTree = "<group>"; };
 		F9B10AF7B63FD5CD4E48799A /* AudioEngineTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AudioEngineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -116,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				99E9266D32F8840BDAFA64AD /* AudioSourceCatalog.swift */,
+				1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */,
 				458596604046914E352942E4 /* ProcessTapCapture.swift */,
 			);
 			path = Capture;
@@ -139,6 +144,7 @@
 			isa = PBXGroup;
 			children = (
 				9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */,
+				F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */,
 				22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */,
 			);
 			path = AudioEngineTests;
@@ -268,6 +274,7 @@
 				FF5103791994F34BBFEBC95E /* AudioSourceCatalog.swift in Sources */,
 				CBA27759ABD2A312303ABE7C /* ContentView.swift in Sources */,
 				321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */,
+				EA3FE9E45B41C3C16F8BF1E3 /* MicrophoneCapture.swift in Sources */,
 				AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */,
 				F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */,
 			);
@@ -278,6 +285,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */,
+				E1DD11C5C2A3C67490604BF2 /* MicrophoneCaptureTests.swift in Sources */,
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

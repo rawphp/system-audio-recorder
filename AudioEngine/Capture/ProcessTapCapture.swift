@@ -13,6 +13,8 @@ public enum CaptureError: Error, Equatable {
     case processTerminated(pid_t)
     case permissionRevoked
     case pidTranslationFailed(pid_t)
+    /// The requested mic device ID could not be found or opened.
+    case deviceUnavailable(String)
 }
 
 /// Public surface contract: per-pid `AsyncStream` of PCM buffers + a `stop()`.
