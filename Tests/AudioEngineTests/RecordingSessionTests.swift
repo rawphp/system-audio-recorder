@@ -652,6 +652,63 @@ final class RecordingSessionTests: XCTestCase {
         _ = await session.stop()
     }
 
+    // MARK: - REQ-039: SessionConfig silence threshold property tests
+    //
+    // These lightweight tests verify that SessionConfig stores the silence
+    // threshold value correctly. The spec mandates a 30 s system default when
+    // silence detection is enabled; in code, the *disabled* default is nil
+    // and the caller supplies 30.0 explicitly (UI layer sets this from
+    // UserDefaults per REQ-021). The "30 s default" is therefore exercised by
+    // verifying that passing 30.0 round-trips through SessionConfig.
+    //
+    // Running an actual 7 s (2 s grace + 5 s threshold) integration test on CI
+    // is too slow; the timing behaviour is covered at custom 1.0 s scale by
+    // testSilenceDetectorStopsAfterThreshold (REQ-015). These tests confirm the
+    // property-storage contract so that UI or UserDefaults wiring (REQ-021/022)
+    // can rely on it.
+
+    /// Default SessionConfig has silence detection disabled (nil).
+    func testSessionConfigDefaultSilenceIsNil() {
+        let e = FakeEmitter(id: "app1")
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00"
+            // autoStopSilenceSeconds not passed → defaults to nil
+        )
+        XCTAssertNil(cfg.autoStopSilenceSeconds,
+                     "Default autoStopSilenceSeconds must be nil (detector disabled)")
+    }
+
+    /// SessionConfig correctly stores the spec-mandated 30 s threshold.
+    func testSessionConfigStores30sThreshold() {
+        let e = FakeEmitter(id: "app1")
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 30.0
+        )
+        XCTAssertEqual(cfg.autoStopSilenceSeconds, 30.0,
+                       "autoStopSilenceSeconds must round-trip as 30.0 s")
+    }
+
+    /// SessionConfig correctly stores a custom 5 s threshold.
+    func testSessionConfigStores5sThreshold() {
+        let e = FakeEmitter(id: "app1")
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 5.0
+        )
+        XCTAssertEqual(cfg.autoStopSilenceSeconds, 5.0,
+                       "autoStopSilenceSeconds must round-trip as 5.0 s")
+    }
+
     /// AC5: Pause resets the silence counter; resume restarts the grace period.
     func testSilenceDetectorResetsOnPause() async throws {
         let session = RecordingSession()

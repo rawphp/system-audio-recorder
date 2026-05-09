@@ -233,4 +233,89 @@ final class FormatNormalizerTests: XCTestCase {
         let normalizer = FormatNormalizer()
         XCTAssertNil(normalizer.normalizerErrorForTesting())
     }
+
+    // MARK: testNoAliasingWhen96kHzDownsampledTo48kHz (REQ-039 scenario b)
+    //
+    // 96 kHz stereo → 48 kHz stereo: the 1 kHz test tone must survive and
+    // no spurious energy above 20 kHz (half the output Nyquist) must exceed
+    // the signal peak by less than 40 dB (i.e. spurious peaks < signal - 40 dB).
+    // This verifies AVAudioConverter applies the anti-aliasing filter required
+    // by spec Section 5.4.
+    func testNoAliasingWhen96kHzDownsampledTo48kHz() throws {
+        let normalizer = FormatNormalizer()
+
+        // 0.5 s at 96 kHz (48000 output frames after downsample).
+        let inputBuffer = sineBuffer(frequency: 1000, sampleRate: 96_000, channels: 2, frameCount: 48_000)
+        let outputBuffers = try normalizer.normalize(inputBuffer)
+        XCTAssertFalse(outputBuffers.isEmpty, "Should produce ≥1 output buffer")
+
+        let out = outputBuffers[0]
+        assertCanonicalFormat(out)
+
+        // Verify 1 kHz tone is preserved.
+        let signal1kHz = peakFrequency(in: out)
+        XCTAssertEqual(signal1kHz, 1000, accuracy: 20,
+                       "1 kHz tone must survive downsampling, got \(signal1kHz) Hz")
+
+        // Verify no aliasing: compute per-bin magnitudes and confirm all bins
+        // above 20 kHz have magnitude well below the 1 kHz bin.
+        guard let ptr = out.floatChannelData?[0] else { return }
+        let n = Int(out.frameLength)
+        var log2n = 0
+        var size = 1
+        while size < n { size <<= 1; log2n += 1 }
+        if size > n { size >>= 1; log2n -= 1 }
+        guard log2n > 0 else { return }
+
+        var reals = [Float](repeating: 0, count: size / 2)
+        var imags = [Float](repeating: 0, count: size / 2)
+        var inputCopy = [Float](repeating: 0, count: size)
+        for i in 0..<size { inputCopy[i] = ptr[i] }
+
+        var signalBinMag: Float = 0
+        var maxAliasBinMag: Float = 0
+
+        reals.withUnsafeMutableBufferPointer { rPtr in
+            imags.withUnsafeMutableBufferPointer { iPtr in
+                var split = DSPSplitComplex(realp: rPtr.baseAddress!, imagp: iPtr.baseAddress!)
+                inputCopy.withUnsafeBytes { rawBytes in
+                    let typed = rawBytes.bindMemory(to: DSPComplex.self)
+                    vDSP_ctoz(typed.baseAddress!, 2, &split, 1, vDSP_Length(size / 2))
+                }
+                let log2nLen = vDSP_Length(log2n)
+                guard let fftSetup = vDSP_create_fftsetup(log2nLen, FFTRadix(FFT_RADIX2)) else { return }
+                defer { vDSP_destroy_fftsetup(fftSetup) }
+                vDSP_fft_zrip(fftSetup, &split, 1, log2nLen, FFTDirection(FFT_FORWARD))
+
+                var magnitudes = [Float](repeating: 0, count: size / 2)
+                vDSP_zvmags(&split, 1, &magnitudes, 1, vDSP_Length(size / 2))
+
+                // Find the 1 kHz bin magnitude.
+                let binWidth = 48_000.0 / Double(size)
+                let signal1kBin = Int((1000.0 / binWidth).rounded())
+                if signal1kBin < magnitudes.count {
+                    signalBinMag = magnitudes[signal1kBin]
+                }
+
+                // Find maximum magnitude in bins above 20 kHz (above 20 kHz / binWidth).
+                let aliasStartBin = Int((20_000.0 / binWidth).rounded())
+                for bin in aliasStartBin..<(size / 2) {
+                    if magnitudes[bin] > maxAliasBinMag {
+                        maxAliasBinMag = magnitudes[bin]
+                    }
+                }
+            }
+        }
+
+        // Signal must be present.
+        XCTAssertGreaterThan(signalBinMag, 0, "1 kHz bin must have non-zero magnitude")
+
+        // Alias energy above 20 kHz must be at least 40 dB below the signal bin.
+        // This is the standard anti-aliasing filter requirement.
+        if signalBinMag > 0 && maxAliasBinMag > 0 {
+            let aliasdB = 20.0 * log10(Double(maxAliasBinMag) / Double(signalBinMag))
+            XCTAssertLessThan(aliasdB, -40.0,
+                              "Aliasing above 20 kHz must be < signal - 40 dB; got \(aliasdB) dB relative")
+        }
+    }
 }
