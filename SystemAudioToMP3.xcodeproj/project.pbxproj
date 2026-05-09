@@ -13,8 +13,10 @@
 		321AC7A511632F5804D0897A /* LameVersionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D2214898D61EE387033CCC /* LameVersionTest.swift */; };
 		48C56173F0CCCE24F6EC044A /* FormatNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DDCCD136484A0F6E1E0579 /* FormatNormalizer.swift */; };
 		4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */; };
+		5457FB4B84966164F27232CD /* WAVWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */; };
 		7B292E265F9938C79320E44B /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */; };
 		8281C6BDA4853A4718C034FE /* LevelMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FAA8038879552EEDA01588 /* LevelMeterTests.swift */; };
+		AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1836DFD74026FFB5AED13075 /* WAVWriter.swift */; };
 		AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458596604046914E352942E4 /* ProcessTapCapture.swift */; };
 		B48DDD9A227ABF9CD9E8853C /* MeterTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8B057452AFFA45451A60E0 /* MeterTap.swift */; };
 		B4BAD655C8CDC7461CD663D1 /* AudioSourceCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8AE4BA249D8FD5C028CDB /* AudioSourceCatalogTests.swift */; };
@@ -40,6 +42,7 @@
 
 /* Begin PBXFileReference section */
 		1826FCCEDEEEA327E96FC49B /* MicrophoneCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCapture.swift; sourceTree = "<group>"; };
+		1836DFD74026FFB5AED13075 /* WAVWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriter.swift; sourceTree = "<group>"; };
 		22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTapCaptureTests.swift; sourceTree = "<group>"; };
 		2F86D8EE1DE8E206CEE357A8 /* lame.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = lame.xcframework; path = Vendor/lame.xcframework; sourceTree = "<group>"; };
 		340C4DC1D733DC0C34B9C343 /* MeterPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterPublisher.swift; sourceTree = "<group>"; };
@@ -61,6 +64,7 @@
 		D0D07964E7334BE5C01BB19B /* MeterRingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterRingBuffer.swift; sourceTree = "<group>"; };
 		D0DBC44E4045728ABD307123 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		D9D2214898D61EE387033CCC /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
+		DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVWriterTests.swift; sourceTree = "<group>"; };
 		EC8B057452AFFA45451A60E0 /* MeterTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeterTap.swift; sourceTree = "<group>"; };
 		F7305ECE0C12BDC5984DA297 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureTests.swift; sourceTree = "<group>"; };
@@ -88,6 +92,14 @@
 			path = Hotkey;
 			sourceTree = "<group>";
 		};
+		111751B13489EB72B1D6DA9F /* Recording */ = {
+			isa = PBXGroup;
+			children = (
+				1836DFD74026FFB5AED13075 /* WAVWriter.swift */,
+			);
+			path = Recording;
+			sourceTree = "<group>";
+		};
 		13D796CECA2ED05FE866D21F /* AudioEngine */ = {
 			isa = PBXGroup;
 			children = (
@@ -96,6 +108,7 @@
 				443A0E4A2BFD9C231667F4DF /* Encoding */,
 				ECCF08E6FCB5DEBBC8726E99 /* Meter */,
 				8820585ABD6E33424FB2C792 /* Mixer */,
+				111751B13489EB72B1D6DA9F /* Recording */,
 			);
 			path = AudioEngine;
 			sourceTree = "<group>";
@@ -176,6 +189,7 @@
 				F8D314C69246D5C1CA87BC25 /* MicrophoneCaptureTests.swift */,
 				7C19B0D51EEAC5C479EB5C22 /* MixerGraphTests.swift */,
 				22A5C2CDCA25989152A90BE4 /* ProcessTapCaptureTests.swift */,
+				DACCF4D5EA1527F617A446CB /* WAVWriterTests.swift */,
 			);
 			path = AudioEngineTests;
 			sourceTree = "<group>";
@@ -322,6 +336,7 @@
 				FC5D28F6E148660A122C45F6 /* MixerGraph.swift in Sources */,
 				AF31B86D1E7922FA17CEC5D8 /* ProcessTapCapture.swift in Sources */,
 				F4BD98F4A778A7AECE5C37DC /* SystemAudioToMP3App.swift in Sources */,
+				AC802229FA42283C4C300C97 /* WAVWriter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,6 +350,7 @@
 				E1DD11C5C2A3C67490604BF2 /* MicrophoneCaptureTests.swift in Sources */,
 				07400D169D4529EF64186AA6 /* MixerGraphTests.swift in Sources */,
 				4FC5BB61C56C7A877432F0D5 /* ProcessTapCaptureTests.swift in Sources */,
+				5457FB4B84966164F27232CD /* WAVWriterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
