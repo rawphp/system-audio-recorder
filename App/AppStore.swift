@@ -172,6 +172,11 @@ public final class AppStore {
     /// The most-recent error to surface in the UI banner (REQ-033 hand-off).
     public private(set) var lastError: Error?
 
+    /// Set to `true` by `MenuBarController`'s "Settings…" action so `ContentView`
+    /// opens the `OutputSettingsView` sheet. Reset to `false` by `ContentView`
+    /// when the sheet is dismissed. (REQ-031)
+    public var _shouldShowSettings: Bool = false
+
     // MARK: - Computed
 
     /// Currently-selected source preset, derived from `settings.lastSourcePreset`.

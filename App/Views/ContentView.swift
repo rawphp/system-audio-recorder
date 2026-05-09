@@ -137,10 +137,22 @@ public struct ContentView: View {
                 .frame(height: 4)
         }
         .frame(width: 480, height: 320)
-        // Sheet: OutputSettingsView (REQ-029)
+        // Sheet: OutputSettingsView (REQ-029).
+        // Also opened by MenuBarController via AppStore._shouldShowSettings (REQ-031).
         .sheet(isPresented: $viewModel.showSettings) {
             if let store = appStore {
                 OutputSettingsView(isPresented: $viewModel.showSettings, settings: store.settings)
+                    .onDisappear {
+                        // Reset the menu-bar flag when the sheet is dismissed.
+                        store._shouldShowSettings = false
+                    }
+            }
+        }
+        // Mirror AppStore._shouldShowSettings → viewModel.showSettings so the
+        // menu-bar "Settings…" action can open the sheet.
+        .onChange(of: appStore?._shouldShowSettings) { _, newValue in
+            if newValue == true {
+                viewModel.showSettings = true
             }
         }
         // Post-stop toast (REQ-027) — overlaid at the bottom of the window.
