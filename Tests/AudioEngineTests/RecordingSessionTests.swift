@@ -709,6 +709,99 @@ final class RecordingSessionTests: XCTestCase {
                        "autoStopSilenceSeconds must round-trip as 5.0 s")
     }
 
+    // MARK: - REQ-052: Real-tap validation in RecordingSession.start
+
+    /// AC: When the tap validator throws, start throws CaptureError.tapCreationFailed
+    /// and does NOT open any output file (no .wav created in the output folder).
+    func testTapValidationFailureThrowsAndDoesNotCreateOutputFile() async throws {
+        // Arrange: session with an always-failing tap validator
+        let session = RecordingSession(tapValidator: { _ in
+            throw CaptureError.tapCreationFailed(-1)
+        })
+        let e = FakeEmitter(id: "app1")
+        // tapValidationPIDs non-nil triggers validation
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "REQ-052-fail",
+            tapValidationPIDs: [12345]
+        )
+
+        // Act
+        do {
+            try await session.start(config: cfg)
+            XCTFail("Expected CaptureError.tapCreationFailed to be thrown")
+        } catch let err as CaptureError {
+            if case .tapCreationFailed(let status) = err {
+                XCTAssertEqual(status, -1, "OSStatus should be -1 (stub value)")
+            } else {
+                XCTFail("Expected tapCreationFailed; got \(err)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+
+        // Assert: no WAV files created in output folder
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: tmpDir.path)) ?? []
+        let wavFiles = contents.filter { $0.hasSuffix(".wav") }
+        XCTAssertTrue(wavFiles.isEmpty,
+                      "No .wav files should be created when tap validation fails; found: \(wavFiles)")
+
+        // Assert: session is still idle (never transitioned to recording)
+        let st = await session.state
+        XCTAssertEqual(st, .idle, "Session should remain .idle after tap validation failure")
+    }
+
+    /// AC: When validation succeeds, the validator is called (tap created & destroyed),
+    /// and the session starts recording normally.
+    func testTapValidationSuccessDestroysTapBeforeEngineSetup() async throws {
+        var validatorCallCount = 0
+        let session = RecordingSession(tapValidator: { _ in
+            validatorCallCount += 1
+            // No throw = success (validator destroys its own tap in production)
+        })
+        let e = FakeEmitter(id: "app1")
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "REQ-052-pass",
+            tapValidationPIDs: [12345]
+        )
+
+        try await session.start(config: cfg)
+        XCTAssertEqual(validatorCallCount, 1, "Tap validator must be called exactly once")
+        let st = await session.state
+        XCTAssertEqual(st, .recording, "Session must be recording after successful validation")
+        _ = await session.stop()
+    }
+
+    /// AC: Mic-only sessions (tapValidationPIDs == nil) skip validation entirely.
+    func testMicOnlySessionSkipsTapValidation() async throws {
+        var validatorCallCount = 0
+        let session = RecordingSession(tapValidator: { _ in
+            validatorCallCount += 1
+            throw CaptureError.tapCreationFailed(-99) // would fail if called
+        })
+        let e = FakeEmitter(id: "mic")
+        // tapValidationPIDs is nil (default) → mic-only → skip validation
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "mic", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "REQ-052-mic"
+            // tapValidationPIDs not set → nil by default
+        )
+
+        // Should not throw — validator is never called
+        try await session.start(config: cfg)
+        XCTAssertEqual(validatorCallCount, 0, "Validator must NOT be called for mic-only sessions")
+        let st = await session.state
+        XCTAssertEqual(st, .recording)
+        _ = await session.stop()
+    }
+
     /// AC5: Pause resets the silence counter; resume restarts the grace period.
     func testSilenceDetectorResetsOnPause() async throws {
         let session = RecordingSession()

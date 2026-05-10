@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreAudio
 import Foundation
 import os.log
 
@@ -69,6 +70,13 @@ public struct SessionConfig: Sendable {
     /// `ErrorSurface` can render them. Empty by default. (REQ-045 / UR-004.)
     public let initialErrors: [PerPIDInitFailure]
 
+    /// PIDs that `RecordingSession.start` must validate a real tap against before
+    /// opening any output file or starting any audio unit (REQ-052). When `nil`,
+    /// validation is skipped entirely — use `nil` for mic-only sessions. When
+    /// non-nil (even `[]` for "Everything" mode with no specific pids), a probe
+    /// tap is created against those pids; failure throws `CaptureError.tapCreationFailed`.
+    public let tapValidationPIDs: [pid_t]?
+
     public init(
         sources: [Source],
         outputMode: OutputMode,
@@ -76,7 +84,8 @@ public struct SessionConfig: Sendable {
         timestamp: String,
         autoStopDuration: TimeInterval? = nil,
         autoStopSilenceSeconds: TimeInterval? = nil,
-        initialErrors: [PerPIDInitFailure] = []
+        initialErrors: [PerPIDInitFailure] = [],
+        tapValidationPIDs: [pid_t]? = nil
     ) {
         self.sources = sources
         self.outputMode = outputMode
@@ -85,6 +94,7 @@ public struct SessionConfig: Sendable {
         self.autoStopDuration = autoStopDuration
         self.autoStopSilenceSeconds = autoStopSilenceSeconds
         self.initialErrors = initialErrors
+        self.tapValidationPIDs = tapValidationPIDs
     }
 }
 
@@ -108,6 +118,18 @@ public enum SessionError: Error, Equatable {
     /// Underlying writer / mixer / capture failed to start.
     case startFailed(String)
 }
+
+// MARK: - TapValidator
+
+/// A closure that validates whether the Core Audio process-tap can be created for
+/// the given list of PIDs. On success it must clean up any transient resources it
+/// created (probe tap). On failure it throws — typically `CaptureError.tapCreationFailed`.
+///
+/// The production implementation (`RecordingSession.defaultTapValidator`) creates a
+/// real `CATapDescription` tap against the supplied pids (or an empty-process tap
+/// if the list is empty) and immediately destroys it.  Tests inject a stub closure
+/// so no real Core Audio call is needed.
+public typealias TapValidator = ([pid_t]) throws -> Void
 
 // MARK: - RecordingSession
 
@@ -192,12 +214,77 @@ public actor RecordingSession {
         category: "RecordingSession"
     )
 
+    /// Injectable tap-validation closure. Production default performs a real
+    /// `AudioHardwareCreateProcessTap` probe and immediately destroys the tap.
+    /// Tests inject a stub to avoid Core Audio hardware calls.
+    private let tapValidator: TapValidator
+
     // MARK: - Init
 
-    public init() {
+    /// - Parameter tapValidator: Optional injectable seam for tap validation (REQ-052).
+    ///   Defaults to the real Core Audio probe. Tests pass a stub closure.
+    public init(tapValidator: TapValidator? = nil) {
+        self.tapValidator = tapValidator ?? RecordingSession.defaultTapValidator
         var c: AsyncStream<Error>.Continuation!
         self.errorStream = AsyncStream<Error> { c = $0 }
         self.errorContinuation = c
+    }
+
+    // MARK: - Default tap validator (production)
+
+    /// Real Core Audio probe: creates a `CATapDescription` for the given pids,
+    /// attempts `AudioHardwareCreateProcessTap`, and immediately destroys the tap
+    /// on success. Throws `CaptureError.tapCreationFailed(OSStatus)` on failure.
+    ///
+    /// An empty pid list is valid for "Everything" mode (the HAL accepts it as a
+    /// system-wide tap probe). The caller passes the full real pid list so the
+    /// HAL can evaluate per-process policy — not the empty-list shortcut used by
+    /// `PermissionManager._defaultAudioTapProbe()`.
+    public static let defaultTapValidator: TapValidator = { pids in
+        var objectIDs: [AudioObjectID] = []
+        // Only translate pids when the list is non-empty; an empty list is a
+        // valid "all processes" probe that still exercises the HAL entitlement check.
+        for pid in pids {
+            var pidVar = pid
+            var addr = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var objID: AudioObjectID = kAudioObjectUnknown
+            var dataSize = UInt32(MemoryLayout<AudioObjectID>.size)
+            let qSize = UInt32(MemoryLayout<pid_t>.size)
+            let status: OSStatus = withUnsafePointer(to: &pidVar) { ptr in
+                AudioObjectGetPropertyData(
+                    AudioObjectID(kAudioObjectSystemObject),
+                    &addr,
+                    qSize,
+                    ptr,
+                    &dataSize,
+                    &objID
+                )
+            }
+            // If translation fails for one pid we still attempt the tap —
+            // validation is about whether the tap API is reachable at all,
+            // not about individual pid availability (that's REQ-045's domain).
+            if status == noErr, objID != kAudioObjectUnknown {
+                objectIDs.append(objID)
+            }
+        }
+
+        let desc = CATapDescription(stereoMixdownOfProcesses: objectIDs)
+        desc.muteBehavior = .unmuted
+        desc.name = "com.tomkaczocha.SystemAudioRecorder.validation"
+
+        var tapID: AudioObjectID = kAudioObjectUnknown
+        let tapStatus = AudioHardwareCreateProcessTap(desc, &tapID)
+        if tapStatus == noErr {
+            if tapID != kAudioObjectUnknown {
+                _ = AudioHardwareDestroyProcessTap(tapID)
+            }
+            return // success — tap created and immediately destroyed
+        }
+        throw CaptureError.tapCreationFailed(tapStatus)
     }
 
     // MARK: - Live gain (REQ-028)
@@ -230,6 +317,20 @@ public actor RecordingSession {
         }
         guard !config.sources.isEmpty else {
             throw SessionError.noSourcesConfigured
+        }
+
+        // REQ-052: Real-tap validation — runs BEFORE any output file is opened or
+        // any audio unit is started. Skipped for mic-only sessions (tapValidationPIDs == nil).
+        // The validator creates a probe tap against the real process list and immediately
+        // destroys it; throws CaptureError.tapCreationFailed on failure.
+        if let pids = config.tapValidationPIDs {
+            do {
+                try tapValidator(pids)
+                log.debug("RecordingSession: tap validation passed for \(pids.count) pid(s)")
+            } catch {
+                log.error("RecordingSession: tap validation failed: \(error.localizedDescription)")
+                throw error // propagate typed CaptureError.tapCreationFailed to AppStore
+            }
         }
 
         let mixer = MixerGraph()
