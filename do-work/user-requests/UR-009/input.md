@@ -1,8 +1,35 @@
 ---
 ur: UR-009
 received: 2026-05-10
-status: intake
+status: captured
+classification: other-as-bug-fix
+layers_in_scope: []
+layer_decisions: {}
+reqs:
+  - { id: REQ-058, layer: none, integration_confidence: n/a }
+  - { id: REQ-059, layer: none, integration_confidence: n/a }
+  - { id: REQ-060, layer: none, integration_confidence: n/a }
+acknowledged_partials: []
 ---
+
+<!-- capture-summary-start -->
+## Capture summary (2026-05-10)
+
+| Item | Value |
+|---|---|
+| Classification | other-as-bug-fix |
+| Layers in scope | (none — bug-fix style) |
+| Layer decisions | (none — all covered) |
+| REQs generated | 3 |
+
+| REQ | Layer | Integration confidence |
+|---|---|---|
+| REQ-058 | none | n/a |
+| REQ-059 | none | n/a |
+| REQ-060 | none | n/a |
+
+**Decision note:** original assistant offer suggested gitignoring `do-work/`. Reversed during capture — `do-work/` must remain tracked because the do-work workflow commits UR/REQ files as it runs. Untracking it would silently break that. `do-work/` is acceptable to publish.
+<!-- capture-summary-end -->
 
 # UR-009: User Request
 
