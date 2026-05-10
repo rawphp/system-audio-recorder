@@ -99,10 +99,8 @@ BUILD_SETTINGS=$(xcodebuild \
   DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
   -showBuildSettings 2>/dev/null)
 
-BUILT_PRODUCTS_DIR=$(echo "$BUILD_SETTINGS" | awk '/BUILT_PRODUCTS_DIR/{print $3}')
-WRAPPER_NAME=$(echo "$BUILD_SETTINGS" | awk '/WRAPPER_NAME/{print $3}')
-
-APP_PATH="$BUILT_PRODUCTS_DIR/$WRAPPER_NAME"
+APP_PATH=$(echo "$BUILD_SETTINGS" \
+  | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{d=$2} / WRAPPER_NAME /{w=$2} END{print d "/" w}')
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "ERROR: Built .app not found at: $APP_PATH" >&2
