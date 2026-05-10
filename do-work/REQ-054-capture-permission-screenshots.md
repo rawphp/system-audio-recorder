@@ -9,17 +9,25 @@
 
 Capture annotated screenshots of the macOS System Settings panes that SystemAudioRecorder requires permission for, and save them as PNG assets for embedding in `docs/user-guide.md`.
 
-The screenshots must cover:
+The screenshots must cover the two privacy panes the app actually requests permission from:
 
-1. **System Audio Recording** — `System Settings → Privacy & Security → System Audio Recording` (the permission `AudioHardwareCreateProcessTap` requires; equivalently labelled "Screen & System Audio Recording" depending on macOS version).
-2. **Microphone** — `System Settings → Privacy & Security → Microphone` showing SystemAudioRecorder in the app list.
-3. **Accessibility** — `System Settings → Privacy & Security → Accessibility` (required for the global hotkey from REQ-020).
+1. **System Audio Recording** — `System Settings → Privacy & Security → Screen & System Audio Recording` (gates `AudioHardwareCreateProcessTap`; the pane is labelled "Screen Recording" on macOS 14 and "Screen & System Audio Recording" on macOS 15+).
+2. **Microphone** — `System Settings → Privacy & Security → Microphone` showing SystemAudioRecorder in the app list (only relevant when the user enables mic recording).
 
-For each pane, capture two states where it makes sense to show the user the difference:
+Note: the global hotkey is registered via Carbon's `RegisterEventHotKey` (through the `KeyboardShortcuts` SPM package). That API does NOT require the Accessibility permission and the app never appears in `Privacy & Security → Accessibility`. Do not capture or document Accessibility — it's not part of this app's permission surface.
+
+For System Audio Recording, capture both states (most users start denied):
 - **Toggle off (denied)** — the state the user lands in on first install.
 - **Toggle on (granted)** — the state needed for the app to work.
 
-Save PNGs to `docs/user-guide-assets/permissions/` with descriptive filenames (e.g. `01-system-audio-denied.png`, `01-system-audio-granted.png`, `02-microphone-granted.png`, `03-accessibility-granted.png`). Six PNGs total: 3 panes × 2 states for the System Audio and Accessibility panes (the most likely friction points), plus Microphone granted-only since most users have already granted it to other apps. PNG, 800–1200px wide.
+For Microphone, capture granted-only (most users have already granted it to some other app, so the pane is non-empty by the time they look).
+
+Save PNGs to `docs/user-guide-assets/permissions/` with descriptive filenames:
+- `01-system-audio-denied.png`
+- `01-system-audio-granted.png`
+- `02-microphone-granted.png`
+
+Three PNGs total. PNG, 800–1200px wide.
 
 ## Context
 
@@ -31,7 +39,7 @@ Capture on the lowest supported macOS version (14.4 Sonoma) where practical — 
 
 ## Acceptance Criteria
 
-- [ ] At least six PNG files exist under `docs/user-guide-assets/permissions/` with the filenames listed in the Task section.
+- [ ] Exactly three PNG files exist under `docs/user-guide-assets/permissions/` with the filenames listed in the Task section.
 - [ ] Each PNG shows the full System Settings pane content (not just the toggle row) — enough chrome for the user to recognise where they are.
 - [ ] Toggle states (on/off) are unambiguous — a user can match what they see in their own System Settings to the screenshot.
 - [ ] No personally identifying info appears in any screenshot (other apps in the permission list are acceptable; user account names in window chrome should be cropped or anonymised).
@@ -42,7 +50,7 @@ Capture on the lowest supported macOS version (14.4 Sonoma) where practical — 
 > Execute these after capturing the screenshots to confirm they are usable.
 
 1. **runtime** `ls docs/user-guide-assets/permissions/*.png | wc -l`
-   - Expected: `6` or more
+   - Expected: `3`
 2. **runtime** `file docs/user-guide-assets/permissions/*.png`
    - Expected: every line reports `PNG image data, 800 x ...` (or wider)
 3. **ui** Open each PNG in Preview.app and visually confirm: the labelled pane is the one shown; the labelled toggle state (on/off) matches what the filename advertises.

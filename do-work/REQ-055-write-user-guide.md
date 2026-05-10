@@ -15,17 +15,17 @@ The guide must cover these sections, in this order:
 2. **Requirements** — macOS 14.4 (Sonoma) or later; permissions list; disk space note.
 3. **Install** — drag-to-Applications from the DMG; first-launch Gatekeeper note (the DMG is notarized, so the user should NOT see "unidentified developer", but document the right-click → Open fallback in case).
 4. **First-launch permissions** — the one section that matters most. Walk the user through granting:
-   - **System Audio Recording** (required) — link to `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture`. Embed the screenshot from REQ-054 (denied + granted states).
+   - **System Audio Recording** (required) — link to `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture`. Embed the screenshot from REQ-054 (denied + granted states). Note the pane label changed across macOS versions ("Screen Recording" on 14, "Screen & System Audio Recording" on 15+).
    - **Microphone** (only if recording mic) — link to `x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone`. Embed screenshot.
-   - **Accessibility** (only if using the global hotkey) — link to the Accessibility pane. Embed screenshot.
+   - Note: the global hotkey does NOT require Accessibility permission. The app uses Carbon's `RegisterEventHotKey` via the `KeyboardShortcuts` SPM package, which is process-scoped and does not surface in System Settings. Do not include an Accessibility section.
 5. **Recording your first clip** — pick a source, hit Start, hit Stop, see the toast. Embed screenshots from REQ-053.
 6. **Where MP3s are saved** — the default is `~/Music/Recordings/`, but note this is configurable in Settings → Output. Show the OutputSettingsView screenshot. Tell the user to use the "Reveal in Finder" button on the post-stop toast as the path-agnostic way to find their file.
 7. **Recording with the menu-bar item** — brief mention that the app has a menu-bar status item for users who hide the dock.
-8. **Hotkey** — how to set the global hotkey (REQ-020) and what permissions it requires.
+8. **Hotkey** — how to set the global hotkey (REQ-020) inside the app's settings. No system-level permission is required; if the hotkey doesn't fire, the cause is almost always that another app has claimed the same combination.
 9. **Troubleshooting** — at minimum:
    - "I get no audio in the recording" — most often System Audio Recording permission denied; jump to step 4.
    - "The Start button is greyed out" — source not selected, or tap unavailable; the in-app affordance from REQ-050 explains why.
-   - "My hotkey doesn't fire" — Accessibility permission denied.
+   - "My hotkey doesn't fire" — another app has claimed the same shortcut. Pick a different combination in the app's hotkey settings.
    - "The app crashed mid-recording" — REQ-016 handles partial-file recovery; mention briefly that the partial WAV is preserved and a re-encode option appears on next launch.
 10. **Uninstall** — drag from /Applications to Trash; mention the Recordings folder is left behind on purpose.
 
