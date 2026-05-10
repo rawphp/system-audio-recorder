@@ -1,7 +1,7 @@
 # REQ-058: Fix SaveToast Observer Wiring So Toast Appears After Stop
 
 **UR:** UR-008
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -79,4 +79,15 @@ The "wire via withObservationTracking" intent was correct but the implementation
 
 ## Outputs
 
-(populated by the worker)
+- `App/Views/SaveToast.swift` — moved `observeQueue()` from `SaveToast` view into `SaveToastViewModel`. New implementation tracks `queue.running`, `queue.completed`, `queue.failed` (not `vm.toastState`). Calls `handleQueueChange()` both at loop start (initial state) and after each observation change. View's `.task` modifier now calls `await viewModel.observeQueue()`.
+- `Tests/AudioEngineTests/SaveToastTests.swift` — added `testObserveQueueTransitionsToEncodingWhenJobStarts` which verifies the observer transitions `toastState` to `.encoding` when a job is added to `queue.running` via `withObservationTracking`.
+
+### Acceptance criteria verification
+
+- [x] `observeQueue()` tracks all three encoding-queue arrays: `queue.running`, `queue.completed`, `queue.failed`. Verified: `grep -nE 'queue\.(running|completed|failed)' App/Views/SaveToast.swift | wc -l` → 6.
+- [x] On each observation cycle, `handleQueueChange()` is called on the view model. Verified: `grep -nE 'handleQueueChange\(\)' App/Views/SaveToast.swift | wc -l` → 8 (definition + 2 call sites in the new loop).
+- [x] An initial `handleQueueChange()` runs at the start of the observation loop. Verified by reading source (`handleQueueChange()` called before the `while` loop).
+- [x] `queue` property is reachable from the observation loop without violating encapsulation — observation loop moved inside `SaveToastViewModel` which already holds `private let queue`.
+- [x] `make build` succeeds with no new warnings (only pre-existing BitrateMode/Sendable warning).
+- [x] `make test` SaveToast suite: 10 tests, 0 failures. Total: 396 tests (+1 new), 1 pre-existing flaky RecordingSession failure unrelated to this REQ.
+- [ ] Manual UI verification: deferred — worker cannot drive the GUI. User must launch the app, record briefly, press Stop, and confirm the encoding/saved toast appears.

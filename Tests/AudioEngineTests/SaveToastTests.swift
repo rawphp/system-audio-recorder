@@ -235,6 +235,42 @@ final class SaveToastTests: XCTestCase {
     }
 
     // -----------------------------------------------------------------------
+    // MARK: - REQ-058: observeQueue() on SaveToastViewModel responds to queue changes
+    // -----------------------------------------------------------------------
+
+    /// Verifies that `SaveToastViewModel.observeQueue()` wires the observer to
+    /// the *queue* arrays (running / completed / failed), not to the toast's own
+    /// state.  With the broken observer the toast stays `.hidden` no matter what
+    /// the queue does.  With the fix it transitions to `.encoding` as soon as a
+    /// job appears in `queue.running`.
+    func testObserveQueueTransitionsToEncodingWhenJobStarts() async throws {
+        let (vm, mock) = makeVM()
+        let job = makeJob()
+
+        // Start the observer in a child task so it runs concurrently.
+        let observerTask = Task { @MainActor in
+            await vm.observeQueue()
+        }
+        // Yield so the observer can install its first withObservationTracking registration.
+        await Task.yield()
+        await Task.yield()
+
+        // Mutate the queue — a job has started encoding.
+        mock.simulateRunning(job: job)
+
+        // Give the observation loop one runloop turn to wake and call handleQueueChange().
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
+
+        observerTask.cancel()
+
+        if case .encoding(let id) = vm.toastState {
+            XCTAssertEqual(id, job.id, "Encoding state should carry the running job's ID")
+        } else {
+            XCTFail("Expected .encoding after queue mutation, got \(vm.toastState)")
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // MARK: - Reveal in Finder calls the injected closure with mp3URL
     // -----------------------------------------------------------------------
 

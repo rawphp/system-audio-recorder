@@ -186,6 +186,38 @@ public final class SaveToastViewModel {
         }
     }
 
+    // MARK: - Queue observation loop
+
+    /// Long-lived observation loop that tracks the encoding queue arrays and
+    /// calls `handleQueueChange()` on every mutation.
+    ///
+    /// Move inside `SaveToastViewModel` (rather than keeping it on the SwiftUI
+    /// view) so the observer has direct access to `queue` and
+    /// `handleQueueChange()` without exposing private state.  The SwiftUI
+    /// view's `.task` modifier calls `await viewModel.observeQueue()`.
+    ///
+    /// REQ-058 fix: the previous implementation tracked `vm.toastState` (the
+    /// toast's own output) instead of the queue's input arrays, and never
+    /// called `handleQueueChange()`.  This implementation corrects both bugs.
+    public func observeQueue() async {
+        // Reflect any queue state that arrived before the observer attached.
+        handleQueueChange()
+        while !Task.isCancelled {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                withObservationTracking {
+                    // Register interest in all three queue arrays so any
+                    // mutation to any of them wakes the loop.
+                    _ = queue.running
+                    _ = queue.completed
+                    _ = queue.failed
+                } onChange: {
+                    continuation.resume()
+                }
+            }
+            handleQueueChange()
+        }
+    }
+
     // MARK: - Private helpers
 
     private func scheduleDismiss() {
@@ -295,8 +327,9 @@ public struct SaveToast: View {
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastState)
         .task {
-            // Observe encoding queue changes via withObservationTracking recursion.
-            await observeQueue()
+            // Delegate observation to the view model, which owns the queue
+            // reference and handleQueueChange() — REQ-058 fix.
+            await viewModel.observeQueue()
         }
     }
 
@@ -316,24 +349,4 @@ public struct SaveToast: View {
             .padding(.bottom, 12)
     }
 
-    /// Long-lived observation loop: each iteration installs one
-    /// `withObservationTracking` callback, which fires once when any tracked
-    /// property changes, then re-installs itself.
-    @MainActor
-    private func observeQueue() async {
-        // We need a reference-captured queue to observe it
-        let vm = viewModel
-        while !Task.isCancelled {
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                withObservationTracking {
-                    // Access the tracked properties so the runtime registers them
-                    _ = vm.toastState
-                } onChange: {
-                    continuation.resume()
-                }
-            }
-            // Yield so the continuation fires on main actor
-            await Task.yield()
-        }
-    }
 }
