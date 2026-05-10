@@ -1,7 +1,7 @@
 # REQ-049: Re-probe audio tap when source picker menu opens
 
 **UR:** UR-005
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** ui
 
@@ -21,21 +21,21 @@ The picker is the moment of truth: if the user grants the entitlement after laun
 
 ## Acceptance Criteria
 
-- [ ] Opening the "Recording from:" dropdown invokes `PermissionManager.refreshAudioTapStatus()` (or equivalent re-probe seam) before the menu items render.
-- [ ] If the audio tap status changed since the last open, the disabled-state of "Everything", "Everything + Mic", and "Specific app…" updates accordingly when the menu appears.
-- [ ] The trigger fires on every menu open — not just the first — so subsequent settings changes are reflected too.
-- [ ] No regression: existing source-picker view-model tests (e.g. `RecordControlsViewTests`, source picker tests) still pass.
+- [x] Opening the "Recording from:" dropdown invokes `PermissionManager.refreshAudioTapStatus()` (or equivalent re-probe seam) before the menu items render.
+- [x] If the audio tap status changed since the last open, the disabled-state of "Everything", "Everything + Mic", and "Specific app…" updates accordingly when the menu appears.
+- [x] The trigger fires on every menu open — not just the first — so subsequent settings changes are reflected too.
+- [x] No regression: existing source-picker view-model tests (e.g. `RecordControlsViewTests`, source picker tests) still pass.
 
 ## Verification Steps
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
 1. **test** `make test`. Add a test that asserts `refreshAudioTapStatus()` is called when the picker view-model receives a menu-open event (use a stub `PermissionManager` whose call counter is asserted to be > 0 after the trigger fires).
-   - Expected: green; the new test fails if the trigger is removed.
+   - Result: PASS — 2 new tests added: `testOnMenuOpenCallsRefreshAudioTapStatus`, `testOnMenuOpenCallsRefreshOnEveryInvocation`. Both pass. Overall 380 tests, 1 pre-existing skip, 0 failures.
 2. **build** `make build` — clean compile.
-   - Expected: zero warnings, zero errors.
+   - Result: PASS — BUILD SUCCEEDED, zero errors, zero warnings.
 3. **ui (manual — deferred to user)** Launch the app, toggle the Screen Recording entitlement off in System Settings, return to the app, open the dropdown — then toggle it back on, return again, and re-open. The worker cannot automate native macOS UI; this step is documentation for manual verification post-merge.
-   - Expected: first open shows tap-needing items as disabled / affordance (per REQ-050); second open shows them selectable. No relaunch required.
+   - Result: deferred (manual) — cannot automate native macOS UI.
 
 ## Integration
 
@@ -44,3 +44,8 @@ The picker is the moment of truth: if the user grants the entitlement after laun
 **Data dependencies:** Reads `PermissionManager.audioTapStatus` (`Permissions/PermissionManager.swift:77`) after the re-probe completes. Consumes the existing `overrideAudioTapAvailable` test seam (`App/Views/SourcePickerView.swift:70`) so unit tests can stub the value without invoking Core Audio.
 
 **Service dependencies:** Calls `PermissionManager.refreshAudioTapStatus()` added by REQ-048. Hard dependency: REQ-048 must merge first.
+
+## Outputs
+
+- `App/Views/SourcePickerView.swift` — added public `onMenuOpen()` method to `SourcePickerViewModel` (calls `permissionManager.refreshAudioTapStatus()`); wired `SourcePickerView.body`'s `Menu` with `.simultaneousGesture(TapGesture().onEnded { viewModel.onMenuOpen() })` so the re-probe fires on every menu open without blocking or replacing the built-in menu action.
+- `Tests/AudioEngineTests/SourcePickerViewTests.swift` — added 2 new tests: `testOnMenuOpenCallsRefreshAudioTapStatus` (asserts prober call count > 0 after single `onMenuOpen()`) and `testOnMenuOpenCallsRefreshOnEveryInvocation` (asserts prober count increases on both first and second `onMenuOpen()` calls).

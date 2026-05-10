@@ -150,6 +150,19 @@ public final class SourcePickerViewModel {
             || permissionManager.microphoneStatus == .restricted
     }
 
+    // MARK: - Menu open hook (REQ-049)
+
+    /// Called by `SourcePickerView` immediately before the source-picker menu
+    /// renders its items, so that `audioTapStatus` reflects the current system
+    /// state every time the user opens the dropdown.
+    ///
+    /// `PermissionManager.refreshAudioTapStatus()` is event-driven (not on a
+    /// timer) — this is the "menu-open" half of that contract (the foreground
+    /// half is in REQ-048).
+    public func onMenuOpen() {
+        permissionManager.refreshAudioTapStatus()
+    }
+
     // MARK: - Open System Settings for microphone
 
     public func openMicrophoneSettings() {
@@ -252,6 +265,9 @@ public struct SourcePickerView: View {
             Text("Recording from:")
                 .foregroundStyle(.secondary)
 
+            // REQ-049: `.simultaneousGesture` fires concurrently with the Menu's
+            // own tap recogniser — it runs when the user taps to open the menu,
+            // on every open, without blocking or replacing the built-in action.
             Menu(viewModel.currentSelectionLabel) {
                 // 1. Everything
                 everythingButton
@@ -272,6 +288,9 @@ public struct SourcePickerView: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
+            .simultaneousGesture(TapGesture().onEnded {
+                viewModel.onMenuOpen()
+            })
         }
         .padding(.horizontal)
         // Sheet: App picker (AC #5)

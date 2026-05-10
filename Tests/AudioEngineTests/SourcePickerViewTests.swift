@@ -279,4 +279,71 @@ final class SourcePickerViewModelTests: XCTestCase {
         XCTAssertEqual(vm.availableItems[3], .specificApp)
         XCTAssertEqual(vm.availableItems[4], .advanced)
     }
+
+    // -----------------------------------------------------------------------
+    // REQ-049: onMenuOpen() must invoke refreshAudioTapStatus() on PermissionManager
+    // -----------------------------------------------------------------------
+
+    /// Calling `onMenuOpen()` must invoke `PermissionManager.refreshAudioTapStatus()`,
+    /// which in turn calls the injected `audioTapProber`. This test guards the
+    /// menu-open → re-probe wiring contract: if `onMenuOpen()` is removed or
+    /// stops calling `refreshAudioTapStatus()`, `proberCallCount` stays 0 and
+    /// the test fails.
+    func testOnMenuOpenCallsRefreshAudioTapStatus() async {
+        var proberCallCount = 0
+        let settings = makeSettings()
+        let pm = PermissionManager(
+            micProvider: SPTestMicProvider(status: .authorized),
+            audioTapProber: {
+                proberCallCount += 1
+                return .available
+            }
+        )
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+
+        let countBefore = proberCallCount
+        vm.onMenuOpen()
+
+        // refreshAudioTapStatus() schedules an async Task; yield to let it run.
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertGreaterThan(proberCallCount, countBefore,
+            "onMenuOpen() must invoke PermissionManager.refreshAudioTapStatus(), " +
+            "which calls the audio-tap prober at least once")
+    }
+
+    /// `onMenuOpen()` must trigger a re-probe on every call, not just the first.
+    /// This ensures that subsequent entitlement changes are reflected each time
+    /// the user opens the menu.
+    func testOnMenuOpenCallsRefreshOnEveryInvocation() async {
+        var proberCallCount = 0
+        let settings = makeSettings()
+        let pm = PermissionManager(
+            micProvider: SPTestMicProvider(status: .authorized),
+            audioTapProber: {
+                proberCallCount += 1
+                return .available
+            }
+        )
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+
+        // First open
+        let countBefore = proberCallCount
+        vm.onMenuOpen()
+        await Task.yield()
+        await Task.yield()
+        let countAfterFirst = proberCallCount
+        XCTAssertGreaterThan(countAfterFirst, countBefore,
+            "First onMenuOpen() must trigger a re-probe")
+
+        // Second open
+        vm.onMenuOpen()
+        await Task.yield()
+        await Task.yield()
+        XCTAssertGreaterThan(proberCallCount, countAfterFirst,
+            "Second onMenuOpen() must also trigger a re-probe (not just the first)")
+    }
 }
