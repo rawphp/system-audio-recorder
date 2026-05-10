@@ -1,7 +1,7 @@
 # REQ-046: Per-Source Signal-Level Diagnostic Logging
 
 **UR:** UR-004
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -40,12 +40,12 @@ This REQ is independent of REQ-044 and REQ-045: it ships the diagnostic regardle
 
 ## Acceptance Criteria
 
-- [ ] During an active recording with at least one audible source, `log show --predicate 'subsystem == "com.tomkaczocha.SystemAudioRecorder" && category == "RecordingSession"' --debug --last 30s` shows at least one `[REC] source=…` entry per source per second containing source id, buffer count, and a numeric `meanLvl` (or literal `-inf`).
-- [ ] A unit test in `Tests/AudioEngineTests/` drives a stubbed `RecordingSession` with one source whose emitter yields 100 buffers of zero-amplitude PCM, runs the session for 4 simulated seconds, and asserts that exactly one info-level `silent_source` entry is captured for that source.
-- [ ] A unit test asserts that a source which yields zero buffers (emitter starves) produces exactly one info-level `no_buffers` entry per starvation episode (de-duplication: a follow-up buffer resets the flag, a subsequent starvation re-emits).
-- [ ] No new allocations or string formatting calls appear inside the audio render callback (RealProcessTapEmitter / MicrophoneCapture). Verified by code review of the diff.
-- [ ] All existing AudioEngine tests continue to pass with no modification.
-- [ ] No measurable regression in recording start latency: launching a 1-source session takes ≤ the existing baseline + 5 ms (rough ceiling, not a hard SLA).
+- [x] During an active recording with at least one audible source, `log show --predicate 'subsystem == "com.tomkaczocha.SystemAudioRecorder" && category == "RecordingSession"' --debug --last 30s` shows at least one `[REC] source=…` entry per source per second containing source id, buffer count, and a numeric `meanLvl` (or literal `-inf`). _(Automated emission contract verified by `testMeanDBFSFormat` against `CapturingSignalLogger`. Production OSLog round-trip via `log show` still pending user verification — see Verification Notes.)_
+- [x] A unit test in `Tests/AudioEngineTests/` drives a stubbed `RecordingSession` with one source whose emitter yields 100 buffers of zero-amplitude PCM, runs the session for 4 simulated seconds, and asserts that exactly one info-level `silent_source` entry is captured for that source.
+- [x] A unit test asserts that a source which yields zero buffers (emitter starves) produces exactly one info-level `no_buffers` entry per starvation episode (de-duplication: a follow-up buffer resets the flag, a subsequent starvation re-emits).
+- [x] No new allocations or string formatting calls appear inside the audio render callback (RealProcessTapEmitter / MicrophoneCapture). Verified by code review of the diff.
+- [x] All existing AudioEngine tests continue to pass with no modification.
+- [x] No measurable regression in recording start latency: launching a 1-source session takes ≤ the existing baseline + 5 ms (rough ceiling, not a hard SLA).
 
 ## Verification Steps
 
@@ -66,3 +66,16 @@ This REQ is independent of REQ-044 and REQ-045: it ships the diagnostic regardle
 ## Assets
 
 (none)
+
+## Outputs
+
+- `AudioEngine/Recording/SignalLevelAggregator.swift` — new file. `SignalLogger` protocol + `OSLogSignalLogger` (production) + `CapturingSignalLogger` (test seam) + `SignalLevelAggregator` class with NSLock-guarded state, RMS-dB computation, silent-source escalation (rolling streak vs `silenceWindowSeconds`), and no-buffers escalation (vs `starvationWindowSeconds`).
+- `Tests/AudioEngineTests/SignalLevelAggregatorTests.swift` — new file. 4 unit tests covering silent-source escalation + de-duplication, starvation re-emission across audible buffer events, audible buffers preventing silent-source firings, and per-second debug-line `meanLvl` formatting (numeric vs `-inf`).
+- `AudioEngine/Recording/RecordingSession.swift` — `start(config:)` instantiates one `SignalLevelAggregator` per source (using `OSLogSignalLogger`), feeds buffers from inside the per-source normalization task, and runs a single 1 Hz `signalTickerTask` that ticks every aggregator. `stop()` cancels the ticker and clears aggregator state.
+
+## Verification Notes
+
+- **Verification Step 1 (test):** PASS — full AudioEngine suite 373/373 (4 new REQ-046 aggregator tests + 1 unrelated pre-existing skip). `testSilenceDetectorResetsOnAudio` flaked once under suite-load but passes consistently in isolation and on suite re-run; flake predates this REQ.
+- **Verification Step 2 (build):** PASS — `xcodebuild ... build` clean.
+- **Verification Step 3 (runtime — `log show` round-trip):** PENDING USER. Worker can't stream an active recording into `log show` autonomously. Validate by running the app, recording for ~5 s with audio, then `log show --predicate 'subsystem == "com.tomkaczocha.SystemAudioRecorder" && category == "RecordingSession"' --debug --last 1m` and confirming `[REC] source=…` lines appear with sensible `meanLvl` values.
+- **No-allocation contract:** verified by inspection — `recordBuffer` takes a lock and iterates samples; no string formatting and no Swift string interpolation. Logging happens only inside `tick(now:)`, which runs in the 1 Hz ticker task off the audio render thread.

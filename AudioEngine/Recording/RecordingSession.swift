@@ -150,6 +150,12 @@ public actor RecordingSession {
     /// yields canonical buffers into the mixer's source stream.
     private var normalizationTasks: [Task<Void, Never>] = []
 
+    /// Per-source diagnostic aggregators (REQ-046 / UR-004). One per source,
+    /// fed buffers from the normalization task and ticked by `signalTickerTask`.
+    private var signalAggregators: [SignalLevelAggregator] = []
+    /// Single ~1 Hz timer task that ticks every aggregator. Cancelled on stop().
+    private var signalTickerTask: Task<Void, Never>?
+
     /// The writer task — drains the mixer outputs into WAV files.
     private var writerTask: Task<[URL], Error>?
 
@@ -229,6 +235,11 @@ public actor RecordingSession {
         let mixer = MixerGraph()
         let writer = WAVWriter(outputFolder: config.outputFolder, timestamp: config.timestamp)
 
+        // Per-source diagnostic logging (REQ-046 / UR-004).
+        let sessionStart = Date()
+        let signalLogger: SignalLogger = OSLogSignalLogger(category: "RecordingSession")
+        var aggregators: [SignalLevelAggregator] = []
+
         // Wire each source: emitter.stream → FormatNormalizer → mixer.addSource.
         for source in config.sources {
             // Build the canonical stream that the mixer will consume.
@@ -244,6 +255,15 @@ public actor RecordingSession {
                 throw SessionError.startFailed("mixer addSource failed for '\(source.id)': \(error)")
             }
 
+            // Per-source signal-level aggregator — fed inside the normalization
+            // task below, ticked by `signalTickerTask`.
+            let aggregator = SignalLevelAggregator(
+                id: source.id,
+                logger: signalLogger,
+                sessionStart: sessionStart
+            )
+            aggregators.append(aggregator)
+
             // Spin up the normalization task for this source.
             let normalizer = FormatNormalizer()
             let emitter = source.emitter
@@ -256,6 +276,7 @@ public actor RecordingSession {
                     do {
                         let normalized = try normalizer.normalize(raw)
                         for buf in normalized {
+                            aggregator.recordBuffer(buf, at: Date())
                             cont.yield(buf)
                         }
                     } catch {
@@ -268,6 +289,25 @@ public actor RecordingSession {
                 cont.finish()
             }
             normalizationTasks.append(task)
+        }
+
+        signalAggregators = aggregators
+
+        // 1 Hz ticker that drives every aggregator until cancelled. Runs as a
+        // detached task so it isn't blocked by actor isolation; uses
+        // `Task.sleep` rather than `DispatchSourceTimer` for simpler cleanup.
+        signalTickerTask = Task.detached { [aggregators] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                } catch {
+                    return // cancelled mid-sleep — exit cleanly
+                }
+                let now = Date()
+                for agg in aggregators {
+                    agg.tick(now: now)
+                }
+            }
         }
 
         // Snapshot for stop() teardown.
@@ -435,6 +475,11 @@ public actor RecordingSession {
         silenceDetectorTask = nil
         silenceDetectorCont?.finish()
         silenceDetectorCont = nil
+
+        // 4c) Tear down per-source signal-level diagnostic logging (REQ-046).
+        signalTickerTask?.cancel()
+        signalTickerTask = nil
+        signalAggregators.removeAll()
 
         // 5) Drop references.
         writerTask = nil
