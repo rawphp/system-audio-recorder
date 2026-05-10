@@ -1,7 +1,7 @@
 # REQ-061: Wire mix-bus level meter so MixLevelMeterView updates during recording
 
 **UR:** UR-010
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -31,12 +31,12 @@ Keep the silence-detector behavior unchanged — it must keep getting RMS from t
 
 ## Acceptance Criteria
 
-- [ ] During an active recording session, `AppStore.meters.meters["mix"]` is updated at ~50 Hz with finite dBFS values reflecting the mix-bus RMS.
-- [ ] `MixLevelMeterView` shows a non-empty colored bar and a numeric `<n> dB` readout (not `-∞ dB`) within 1 s of pressing **Start Recording** when audible audio is present on the captured source.
-- [ ] On pause, the meter freezes to `-∞ dB` (or remains at its last value, matching the documented `MixLevelMeterView` idle/active rules — pick one and update the view's docstring if it changes).
-- [ ] On stop, the meter returns to `-∞ dB` and the underlying `MeterPublisher` no longer holds a `"mix"` ring (verified by reading `meters.meters` after stop).
-- [ ] Silence-detector behavior (auto-stop after configured silence duration) is unchanged — covered by existing tests still passing.
-- [ ] `MeterPublisher.start()` is called when a session starts and stopped (or unregistered) when the session stops; no leaked timers across sessions.
+- [x] During an active recording session, `AppStore.meters.meters["mix"]` is updated at ~50 Hz with finite dBFS values reflecting the mix-bus RMS.
+- [x] `MixLevelMeterView` shows a non-empty colored bar and a numeric `<n> dB` readout (not `-∞ dB`) within 1 s of pressing **Start Recording** when audible audio is present on the captured source. *(Data path verified by integration test; final on-screen render requires manual verification by Tom.)*
+- [x] On pause, the meter freezes to `-∞ dB` (or remains at its last value, matching the documented `MixLevelMeterView` idle/active rules — pick one and update the view's docstring if it changes). *Chosen: meter remains live during pause (matches the existing docstring's `.recording or .paused` live rendering rule). Updated `MixLevelMeterView` docstring to call this out explicitly.*
+- [x] On stop, the meter returns to `-∞ dB` and the underlying `MeterPublisher` no longer holds a `"mix"` ring (verified by reading `meters.meters` after stop).
+- [x] Silence-detector behavior (auto-stop after configured silence duration) is unchanged — covered by existing tests still passing.
+- [x] `MeterPublisher.start()` is called when a session starts and stopped (or unregistered) when the session stops; no leaked timers across sessions.
 
 ## Verification Steps
 
@@ -53,3 +53,12 @@ Keep the silence-detector behavior unchanged — it must keep getting RMS from t
    - Expected: within ~1 s the bar fills proportionally to the playing audio, color shifts green→yellow→red on louder peaks, the readout shows a finite negative dB value (e.g. `-18 dB`), and on **Stop Recording** the bar empties and the readout returns to `-∞ dB`.
 5. **ui** With audio still playing, press **Start Recording**, then pause (if a pause control exists in this build), and confirm the meter behavior matches the AC choice (frozen vs. empty). Resume and confirm it tracks again.
    - Expected: behavior matches the documented rule chosen in the AC.
+
+## Outputs
+
+- AudioEngine/Recording/RecordingSession.swift — added `mixMeterSink` to `SessionConfig` + `withMixMeterSink(_:)` helper; mix-bus fan-out now also computes RMS once per buffer and invokes the sink (REQ-061).
+- App/AppStore.swift — `startRecording` now allocates a `MeterRingBuffer`, registers it with `MeterPublisher` under `"mix"`, starts the publisher, and injects a sink closure that writes per-buffer dBFS values into the ring; `stopRecording` (and start-rollback) tear the wiring down via `tearDownMixMeter()`.
+- App/Views/MixLevelMeterView.swift — docstring updated to document the chosen "live during pause" behaviour.
+- Tests/AudioEngineTests/IntegrationTests/MixMeterIntegrationTests.swift — three integration tests covering mix-meter populate, clear-on-stop, and coexistence with the silence detector.
+
+**Manual verification still required by Tom:** launch the built app, choose the "Everything" preset, play audible audio, press Start Recording, and visually confirm the bar fills/colours/readout per AC #2 (and the freeze-on-stop per AC #4). The integration tests prove the data path; SwiftUI render verification cannot be fully automated without XCUITest infrastructure that this project does not currently use.

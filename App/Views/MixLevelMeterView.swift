@@ -58,6 +58,12 @@ public enum MeterMath {
 /// **Live rendering** (session is `.recording` or `.paused`):
 /// Shows the bar filled proportionally to the current mix RMS level, coloured
 /// green/yellow/red, and the rounded dB string to the right.
+///
+/// **Pause behaviour** (REQ-061): The meter stays *live* during pause —
+/// underlying source emitters and the mixer keep running while paused (the
+/// WAV writer drops buffers but the mix-bus stream continues to fan out to
+/// the meter sink). This matches the "live during pause" contract documented
+/// above; no special freeze state is required.
 public struct MixLevelMeterView: View {
 
     @Environment(\.appStore) private var appStore

@@ -209,6 +209,11 @@ public final class AppStore {
     /// The most-recent error to surface in the UI banner (REQ-033 hand-off).
     public private(set) var lastError: Error?
 
+    /// Ring buffer fed by the active session's mix-bus dBFS values and
+    /// drained by `meters` at 50 Hz under the `"mix"` source ID. (REQ-061)
+    /// Allocated on `startRecording`, released on `stopRecording`.
+    private var mixMeterRing: MeterRingBuffer?
+
     /// Set to `true` by `MenuBarController`'s "Settings…" action so `ContentView`
     /// opens the `OutputSettingsView` sheet. Reset to `false` by `ContentView`
     /// when the sheet is dismissed. (REQ-031)
@@ -307,13 +312,27 @@ public final class AppStore {
         // Persist preset choice.
         settings.lastSourcePreset = preset.settingsKey
 
-        let config: SessionConfig
+        let baseConfig: SessionConfig
         do {
-            config = try sessionConfigBuilder.build(preset: preset, settings: settings)
+            baseConfig = try sessionConfigBuilder.build(preset: preset, settings: settings)
         } catch {
             lastError = error
             await routeSessionStartError(error)
             return
+        }
+
+        // REQ-061: Wire the mix-bus level meter for the lifetime of the session.
+        // Allocate a fresh ring buffer per session, register it with the
+        // publisher under the canonical `"mix"` source ID, start the 50 Hz
+        // drain timer, and inject a sink closure into the SessionConfig so
+        // RecordingSession writes per-buffer dBFS values into the ring.
+        let ring = MeterRingBuffer(capacity: 64)
+        mixMeterRing = ring
+        meters.register(sourceID: MeterMath.mixSourceID, ring: ring)
+        meters.start()
+
+        let config = baseConfig.withMixMeterSink { [weak ring] dbfs in
+            ring?.write(dbfs)
         }
 
         let session = RecordingSession()
@@ -324,12 +343,22 @@ public final class AppStore {
         do {
             try await session.start(config: config)
         } catch {
-            // Roll back state on failure.
+            // Roll back state on failure — also tear down the meter wiring.
             lastError = error
             currentSession = nil
             sessionState = .idle
+            tearDownMixMeter()
             await routeSessionStartError(error)
         }
+    }
+
+    /// Unregisters the `"mix"` ring from the publisher and stops the drain
+    /// timer. Called from `startRecording` rollback and `stopRecording`.
+    /// (REQ-061)
+    private func tearDownMixMeter() {
+        meters.unregister(sourceID: MeterMath.mixSourceID)
+        meters.stop()
+        mixMeterRing = nil
     }
 
     /// Translate session-start errors into the appropriate `errorSurface` report.
@@ -392,6 +421,9 @@ public final class AppStore {
 
         currentSession = nil
         sessionState = .idle
+
+        // REQ-061: Drop the mix meter ring and stop the publisher's drain timer.
+        tearDownMixMeter()
     }
 }
 

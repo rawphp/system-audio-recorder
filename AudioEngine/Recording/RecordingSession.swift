@@ -77,6 +77,18 @@ public struct SessionConfig: Sendable {
     /// tap is created against those pids; failure throws `CaptureError.tapCreationFailed`.
     public let tapValidationPIDs: [pid_t]?
 
+    /// Optional callback invoked once per mix-bus buffer with the buffer's
+    /// dBFS RMS level (REQ-061). Used by `AppStore` to feed the
+    /// `MeterPublisher`'s `"mix"` ring buffer so `MixLevelMeterView` can
+    /// render a live mix level. `nil` (default) means no meter sink is
+    /// installed; existing tests are unaffected.
+    ///
+    /// The closure runs on a detached audio-side task — implementations must
+    /// be safe to call from any thread. The default implementation in
+    /// `AppStore.startRecording` calls `MeterRingBuffer.write(_:)` which is
+    /// lock-free.
+    public let mixMeterSink: (@Sendable (Float) -> Void)?
+
     public init(
         sources: [Source],
         outputMode: OutputMode,
@@ -85,7 +97,8 @@ public struct SessionConfig: Sendable {
         autoStopDuration: TimeInterval? = nil,
         autoStopSilenceSeconds: TimeInterval? = nil,
         initialErrors: [PerPIDInitFailure] = [],
-        tapValidationPIDs: [pid_t]? = nil
+        tapValidationPIDs: [pid_t]? = nil,
+        mixMeterSink: (@Sendable (Float) -> Void)? = nil
     ) {
         self.sources = sources
         self.outputMode = outputMode
@@ -95,6 +108,26 @@ public struct SessionConfig: Sendable {
         self.autoStopSilenceSeconds = autoStopSilenceSeconds
         self.initialErrors = initialErrors
         self.tapValidationPIDs = tapValidationPIDs
+        self.mixMeterSink = mixMeterSink
+    }
+
+    /// Returns a copy of `self` with `mixMeterSink` replaced. (REQ-061)
+    ///
+    /// Used by `AppStore.startRecording` to inject the meter sink after the
+    /// `SessionConfigBuilder` has produced the otherwise-fully-resolved config,
+    /// without leaking the `MeterPublisher` into the builder's protocol.
+    public func withMixMeterSink(_ sink: (@Sendable (Float) -> Void)?) -> SessionConfig {
+        SessionConfig(
+            sources: sources,
+            outputMode: outputMode,
+            outputFolder: outputFolder,
+            timestamp: timestamp,
+            autoStopDuration: autoStopDuration,
+            autoStopSilenceSeconds: autoStopSilenceSeconds,
+            initialErrors: initialErrors,
+            tapValidationPIDs: tapValidationPIDs,
+            mixMeterSink: sink
+        )
     }
 }
 
@@ -426,40 +459,57 @@ public actor RecordingSession {
         let errCont = self.errorContinuation
         let logger = self.log
 
-        // REQ-015: If silence detection is configured, fan-out the mix stream so
-        // both the WAV writer and the silence detector receive every buffer.
+        // REQ-015 + REQ-061: When either the silence detector OR the mix-meter
+        // sink is configured, fan-out the mix stream so the WAV writer, the
+        // silence detector, and the meter sink can all observe every buffer.
         let writerMixStream: AsyncStream<AVAudioPCMBuffer>
-        if let silenceSecs = config.autoStopSilenceSeconds {
-            self.silenceThreshold = silenceSecs
+        let silenceSecs = config.autoStopSilenceSeconds
+        let meterSink   = config.mixMeterSink
 
-            // Build two downstream streams from the single raw mix stream.
+        if silenceSecs != nil || meterSink != nil {
+            if let s = silenceSecs { self.silenceThreshold = s }
+
+            // Writer always receives every buffer.
             var writerCont: AsyncStream<AVAudioPCMBuffer>.Continuation!
-            var detectorCont: AsyncStream<AVAudioPCMBuffer>.Continuation!
-            let writerStream   = AsyncStream<AVAudioPCMBuffer> { writerCont   = $0 }
-            let detectorStream = AsyncStream<AVAudioPCMBuffer> { detectorCont = $0 }
+            let writerStream = AsyncStream<AVAudioPCMBuffer> { writerCont = $0 }
 
-            // Save the detector continuation so pause/stop can close it cleanly.
-            self.silenceDetectorCont = detectorCont
+            // Optional silence-detector downstream.
+            var detectorContOpt: AsyncStream<AVAudioPCMBuffer>.Continuation?
+            var detectorStreamOpt: AsyncStream<AVAudioPCMBuffer>?
+            if silenceSecs != nil {
+                var dc: AsyncStream<AVAudioPCMBuffer>.Continuation!
+                let ds = AsyncStream<AVAudioPCMBuffer> { dc = $0 }
+                detectorContOpt = dc
+                detectorStreamOpt = ds
+                self.silenceDetectorCont = dc
+            }
 
-            // Fan-out task: reads from mixer, yields to both downstreams.
+            // Fan-out task: reads from mixer, yields to writer + detector,
+            // and computes RMS once per buffer when a meter sink is installed.
             let wc = writerCont!
-            let dc = detectorCont!
+            let dc = detectorContOpt
             Task.detached {
                 for await buf in rawMixStream {
                     wc.yield(buf)
-                    dc.yield(buf)
+                    dc?.yield(buf)
+                    if let sink = meterSink {
+                        let rms = MeterTap.computeRMS(buf)
+                        sink(rms)
+                    }
                 }
                 wc.finish()
-                dc.finish()
+                dc?.finish()
             }
 
             writerMixStream = writerStream
 
-            // Launch the silence detector.
-            silenceDetectorTask = installSilenceDetector(
-                stream: detectorStream,
-                threshold: silenceSecs
-            )
+            // Launch the silence detector if configured.
+            if let s = silenceSecs, let ds = detectorStreamOpt {
+                silenceDetectorTask = installSilenceDetector(
+                    stream: ds,
+                    threshold: s
+                )
+            }
         } else {
             writerMixStream = rawMixStream
         }
