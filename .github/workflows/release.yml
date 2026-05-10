@@ -20,6 +20,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write   # required for softprops/action-gh-release to create the Release
+
 jobs:
   release:
     name: Build & Release (macos-14)
