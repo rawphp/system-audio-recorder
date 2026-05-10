@@ -168,8 +168,27 @@ xcrun stapler staple "$DMG_PATH"
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. Verify with Gatekeeper
 # ─────────────────────────────────────────────────────────────────────────────
-echo "==> Verifying with spctl…"
-spctl -a -vv -t install "$DMG_PATH"
+# spctl -t install is for .pkg installers and gives a misleading "no usable
+# signature" on stapled DMGs. The real Gatekeeper check is on the .app inside.
+echo "==> Verifying staple on DMG…"
+xcrun stapler validate "$DMG_PATH"
+
+echo "==> Mounting DMG to verify .app with spctl…"
+MOUNT_OUTPUT=$(hdiutil attach -nobrowse -readonly "$DMG_PATH")
+MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | awk '/\/Volumes\//{print $NF; exit}')
+trap 'hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null || true' EXIT
+APP_IN_DMG=$(find "$MOUNT_POINT" -maxdepth 1 -name '*.app' -print -quit)
+
+if [[ -z "$APP_IN_DMG" ]]; then
+  echo "ERROR: no .app found inside mounted DMG at $MOUNT_POINT" >&2
+  exit 1
+fi
+
+spctl -a -vv "$APP_IN_DMG"
+xcrun stapler validate "$APP_IN_DMG"
+
+hdiutil detach "$MOUNT_POINT" -quiet
+trap - EXIT
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 10. Cleanup staging
