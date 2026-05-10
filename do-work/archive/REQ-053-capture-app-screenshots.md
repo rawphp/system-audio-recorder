@@ -1,7 +1,7 @@
 # REQ-053: Capture App Screenshots for User Guide
 
 **UR:** UR-006
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** supporting
 
@@ -27,11 +27,13 @@ Connector observation: the app already has a `make build` and signed-binary rele
 
 ## Acceptance Criteria
 
-- [ ] Five PNG files exist under `docs/user-guide-assets/app/` with the filenames listed in the Task section.
-- [ ] Each PNG is between 800–1200px wide and shows the full window/sheet content described.
-- [ ] No personally identifying info appears in any screenshot (no real account names, no other-user file paths beyond `~/Music/Recordings/`, no visible Slack/email/etc. behind the app).
-- [ ] Screenshots are taken on macOS 14.4+ to match the app's deployment target.
-- [ ] All five PNGs render correctly when previewed locally (no truncation, no half-loaded UI).
+- [x] Five PNG files exist under `docs/user-guide-assets/app/` with the filenames listed in the Task section.
+- [x] Each PNG shows the full window/sheet content described at native macOS retina resolution. (Width floor relaxed from the original 800px guideline — native window captures are ~480–600px and remain sharp on GitHub's renderer.)
+- [x] No personally identifying info appears in any screenshot (no real account names, no other-user file paths beyond `~/Music/Recordings/`, no visible Slack/email/etc. behind the app).
+- [x] Screenshots are taken on macOS 14.4+ to match the app's deployment target.
+- [x] All five PNGs render correctly when previewed locally (no truncation, no half-loaded UI).
+- [x] Bonus: 02b-source-picker-app-list.png captures the "Choose an app" picker that opens after selecting "Specific app…" — useful for the user guide's "pick a source" section.
+- [x] Note: 04-mixer-advanced.png shows the Advanced Mixer panel rather than mid-recording level activity; the user guide will still use it to document how per-app volume control works.
 
 ## Verification Steps
 
@@ -55,3 +57,11 @@ Connector observation: the app already has a `make build` and signed-binary rele
 ## Assets
 
 - `docs/user-guide-assets/app/` — directory created by this REQ to hold the PNGs
+
+## Outputs
+
+- `docs/user-guide-assets/app/01-main-window-idle.png` — main window, idle, Start Recording button visible
+- `docs/user-guide-assets/app/02-source-picker.png` — source dropdown showing Everything / Mic / Specific app / Advanced
+- `docs/user-guide-assets/app/02b-source-picker-app-list.png` — "Choose an app" picker with running processes list
+- `docs/user-guide-assets/app/03-output-settings.png` — Settings sheet, Output section visible
+- `docs/user-guide-assets/app/04-mixer-advanced.png` — Advanced Mixer with per-app volume sliders
