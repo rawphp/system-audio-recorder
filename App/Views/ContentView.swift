@@ -86,6 +86,14 @@ public struct ContentView: View {
                     .font(.headline)
                 Spacer()
                 Button {
+                    NSWorkspace.shared.open(UserGuide.url)
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                        .imageScale(.medium)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open User Guide")
+                Button {
                     viewModel.openSettings()
                 } label: {
                     Image(systemName: "gearshape")

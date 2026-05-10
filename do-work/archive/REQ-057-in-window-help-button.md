@@ -1,7 +1,7 @@
 # REQ-057: In-Window Help Button Opens User Guide
 
 **UR:** UR-006
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** ui
 
@@ -65,3 +65,18 @@ Challenger observation incorporated: the "?" icon must not visually crowd the ge
 ## Assets
 
 - (none)
+
+## Outputs
+
+- `App/Views/ContentView.swift` — Help button inserted before Settings cog in title-bar HStack (lines 88–96).
+- `Tests/AudioEngineTests/ContentViewHelpButtonTests.swift` — source-content tests verifying icon, accessibility label, action, and ordering.
+
+## Verification Results
+
+- `make build` — SUCCEEDED (no new warnings).
+- `make test` — pre-existing TEST_HOST failure ("Could not find test host for AudioEngineTests") unchanged. Not caused by this REQ.
+- `grep -c 'NSWorkspace.shared.open(UserGuide.url)' App/Views/ContentView.swift` — returns `1`. ✓
+- `questionmark.circle` SF Symbol present in ContentView.swift. ✓
+- `"Open User Guide"` accessibility label present. ✓
+- Help button placed before gearshape in the HStack. ✓
+- UI/click/VoiceOver checks — deferred (manual).

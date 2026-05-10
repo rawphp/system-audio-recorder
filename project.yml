@@ -49,7 +49,7 @@ targets:
         embed: false
     settings:
       base:
-        PRODUCT_NAME: SystemAudioRecorder
+        PRODUCT_NAME: System Audio Recorder
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.SystemAudioRecorder
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SystemAudioRecorder.entitlements
