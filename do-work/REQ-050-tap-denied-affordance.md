@@ -39,12 +39,12 @@ Challenger: the affordance must not flash on every probe. If `audioTapStatus` is
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
-1. **test** Run the source-picker tests: `swift test --filter SourcePickerView`. Add tests that drive `overrideAudioTapAvailable = false` (and a parallel seam for tap-denied vs unknown if needed) and assert the affordance appears.
+1. **test** `make test`. Add view-model tests that drive the override seam (`overrideAudioTapAvailable = false`, plus a parallel seam for tap-denied vs unknown if needed) and assert: (a) the affordance appears for the three tap-needing items when status is denied; (b) it disappears when status is `.available`; (c) it does NOT appear when status is `.unknown`.
    - Expected: green; new tests fail if the affordance is removed.
-2. **build** Project builds clean.
+2. **build** `make build` — clean compile.
    - Expected: zero warnings, zero errors.
-3. **ui** Launch the app on a Mac with the Screen Recording entitlement revoked (or simulate via the override seam). Open the dropdown.
-   - Expected: the three tap-needing items appear as a clickable "Open Settings" affordance. Clicking opens the Screen Recording pane in System Settings. Granting the permission and returning to the app (foreground re-probe from REQ-048) restores the normal items on the next dropdown open.
+3. **ui (manual — deferred to user)** Launch the app on a Mac with the Screen Recording entitlement revoked (or simulate via the override seam). Open the dropdown. The worker cannot automate native macOS UI; this step is documentation for manual verification post-merge.
+   - Expected: the three tap-needing items appear as a clickable "Open Settings" affordance. Clicking opens the Screen Recording pane. Granting the permission and returning to the app (foreground re-probe from REQ-048) restores the normal items on the next dropdown open.
 
 ## Integration
 

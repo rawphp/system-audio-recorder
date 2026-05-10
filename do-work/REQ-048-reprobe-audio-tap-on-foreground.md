@@ -34,12 +34,12 @@ Connector: mirrors the structure of `startPolling()` (1 Hz mic timer) but uses a
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
-1. **test** Run `swift test --filter PermissionManagerTests`. Add a test that injects a stub notification post and asserts the probe was re-invoked.
+1. **test** `make test`. Add a test that posts a fake `NSApplication.didBecomeActiveNotification` and asserts the probe was re-invoked (count or stub-tap-factory-call increment).
    - Expected: green; the new test fails if the observer is removed.
-2. **build** Project builds clean (e.g. `make build`).
+2. **build** `make build` — clean compile.
    - Expected: zero warnings, zero errors.
-3. **runtime** Manual: launch the app, open Console.app filtering on the app's bundle id, then `open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"`, toggle the entitlement, return to the app. Add a temporary log line in `requestAudioTap` (or a debug assertion) to confirm it re-fires on foreground.
-   - Expected: log shows the probe re-running each time the app becomes active.
+3. **runtime (manual — deferred to user)** Launch the app, then `open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"` and toggle the entitlement. Return to the app. The worker cannot drive macOS settings UI; this step is documentation for manual verification post-merge.
+   - Expected: the probe re-fires each time the app becomes active (verified by automated test in step 1; manual check confirms end-to-end).
 
 ## Integration
 

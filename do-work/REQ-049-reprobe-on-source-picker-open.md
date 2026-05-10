@@ -30,11 +30,11 @@ The picker is the moment of truth: if the user grants the entitlement after laun
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
-1. **test** Run the source-picker view tests: `swift test --filter SourcePickerView` (or the equivalent view-model test target). Add a test that asserts `refreshAudioTapStatus()` is called when the picker is opened (use a stub `PermissionManager`).
+1. **test** `make test`. Add a test that asserts `refreshAudioTapStatus()` is called when the picker view-model receives a menu-open event (use a stub `PermissionManager` whose call counter is asserted to be > 0 after the trigger fires).
    - Expected: green; the new test fails if the trigger is removed.
-2. **build** Project builds clean.
+2. **build** `make build` — clean compile.
    - Expected: zero warnings, zero errors.
-3. **ui** Launch the app. Toggle the Screen Recording entitlement off in System Settings, return to the app, and open the dropdown — then toggle it back on, return again, and re-open.
+3. **ui (manual — deferred to user)** Launch the app, toggle the Screen Recording entitlement off in System Settings, return to the app, open the dropdown — then toggle it back on, return again, and re-open. The worker cannot automate native macOS UI; this step is documentation for manual verification post-merge.
    - Expected: first open shows tap-needing items as disabled / affordance (per REQ-050); second open shows them selectable. No relaunch required.
 
 ## Integration

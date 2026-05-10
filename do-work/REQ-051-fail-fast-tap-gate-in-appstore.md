@@ -37,11 +37,11 @@ Challenger: even with REQ-047 / REQ-048 / REQ-049 wired, status can still be sta
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
-1. **test** Run `swift test --filter AppStore` (and the surrounding integration tests). Add a test using a stub `PermissionManager` (always returns `.deniedByPolicy`) that asserts `startRecording(preset: .everything)` does NOT call `recordingSession.start` and DOES surface an `AppAlert`.
+1. **test** `make test`. Add a test using a stub `PermissionManager` (always returns `.deniedByPolicy`) that asserts `startRecording(preset: .everything)` does NOT call `recordingSession.start` and DOES surface an `AppAlert` via the `errorSurface`.
    - Expected: green; the new test fails if the gate is removed.
-2. **build** Project builds clean.
+2. **build** `make build` — clean compile.
    - Expected: zero warnings, zero errors.
-3. **ui** Launch the app on a Mac with the Screen Recording entitlement revoked (or simulate via the override seam). Try to Start a recording with the "Everything" preset.
+3. **ui (manual — deferred to user)** Launch the app on a Mac with the Screen Recording entitlement revoked (or simulate via the override seam). Try to Start a recording with the "Everything" preset.
    - Expected: an alert appears with "Tap unavailable" copy and an "Open Settings" button that opens the Screen Recording pane. No partial recording is created on disk.
 
 ## Integration

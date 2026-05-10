@@ -36,11 +36,11 @@ Challenger: per-PID failures are already handled gracefully by REQ-045 (the sess
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
-1. **test** Run `swift test --filter RecordingSession` and `swift test --filter ProcessTapCapture`. Add a test that injects a stub tap factory configured to fail tap creation, and asserts `RecordingSession.start` throws `tapCreationFailed` (or the chosen typed error) without opening the output file.
+1. **test** `make test`. Add a test that injects a stub tap factory configured to fail tap creation and asserts `RecordingSession.start` throws `tapCreationFailed` (or the chosen typed error) without opening the output file.
    - Expected: green; the new test fails if the validation step is removed.
-2. **build** Project builds clean.
+2. **build** `make build` — clean compile.
    - Expected: zero warnings, zero errors.
-3. **runtime** Manual: revoke the Screen Recording entitlement, launch the app (REQ-051's gate may catch this first — temporarily disable that gate for this verification), click Start with "Everything" preset.
+3. **runtime (manual — deferred to user)** Revoke the Screen Recording entitlement, launch the app (REQ-051's gate may catch this first — temporarily disable that gate for this verification), click Start with "Everything" preset. The worker cannot drive macOS settings UI; this step is documentation for manual verification post-merge.
    - Expected: an error is thrown from `RecordingSession.start` and surfaced via `errorSurface`. No `.wav` or `.mp3` artefacts are created on disk for the failed session.
 
 ## Integration
