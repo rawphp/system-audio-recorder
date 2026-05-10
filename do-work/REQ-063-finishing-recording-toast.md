@@ -11,6 +11,8 @@ Once REQ-062 flips `sessionState` to `.stopped` synchronously, the record contro
 
 ## Context
 
+**Depends on:** REQ-062 (this REQ requires `AppStore.isFinishingRecording` to be exposed and to flip synchronously around `await session.stop()`, which is added as part of REQ-062's restructured stop/pause/resume path).
+
 UR-011 clarification: the user opted for a "transient toast" over no feedback or a disabled Start button. Reasoning: instant control collapse with no feedback would leave the user uncertain whether the file is actually being saved; the toast spans the small but real window between Stop click and writer finalize, then hands off to the existing `.encoding → .saved` toast progression already wired to `EncodingQueue`. Connector observation from ideate: `SaveToast` already implements the toast lifecycle pattern with `ToastState` and `SaveToastViewModel`; adding a new case is materially smaller than building a parallel toast.
 
 Implementation outline (the implementer may adapt):
