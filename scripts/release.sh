@@ -174,11 +174,13 @@ echo "==> Verifying staple on DMG…"
 xcrun stapler validate "$DMG_PATH"
 
 echo "==> Mounting DMG to verify .app with spctl…"
-MOUNT_OUTPUT=$(hdiutil attach -nobrowse -readonly "$DMG_PATH")
-MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | awk '/\/Volumes\//{print $NF; exit}')
-trap 'hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null || true' EXIT
-APP_IN_DMG=$(find "$MOUNT_POINT" -maxdepth 1 -name '*.app' -print -quit)
+# Mount at a known path so we don't have to parse hdiutil output (the
+# default /Volumes/<volname> can contain spaces, e.g. "SystemAudioRecorder 1.0.0").
+MOUNT_POINT=$(mktemp -d -t sysaudio-verify)
+trap 'hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null || true; rmdir "$MOUNT_POINT" 2>/dev/null || true' EXIT
+hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_POINT" "$DMG_PATH" >/dev/null
 
+APP_IN_DMG=$(find "$MOUNT_POINT" -maxdepth 1 -name '*.app' -print -quit)
 if [[ -z "$APP_IN_DMG" ]]; then
   echo "ERROR: no .app found inside mounted DMG at $MOUNT_POINT" >&2
   exit 1
@@ -188,6 +190,7 @@ spctl -a -vv "$APP_IN_DMG"
 xcrun stapler validate "$APP_IN_DMG"
 
 hdiutil detach "$MOUNT_POINT" -quiet
+rmdir "$MOUNT_POINT" 2>/dev/null || true
 trap - EXIT
 
 # ─────────────────────────────────────────────────────────────────────────────

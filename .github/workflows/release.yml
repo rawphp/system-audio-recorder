@@ -37,6 +37,18 @@ jobs:
       - name: Install tools
         run: brew install xcodegen create-dmg
 
+      - name: Sync version from tag into Info.plist
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: tag '$TAG' is not a semver vX.Y.Z — refusing to derive version" >&2
+            exit 1
+          fi
+          plutil -replace CFBundleShortVersionString -string "$VERSION" Resources/Info.plist
+          plutil -replace CFBundleVersion -string "${GITHUB_RUN_NUMBER}" Resources/Info.plist
+          echo "Info.plist version → $VERSION (build ${GITHUB_RUN_NUMBER})"
+
       - name: Generate Xcode project
         run: xcodegen generate
 
