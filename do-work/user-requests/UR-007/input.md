@@ -9,3 +9,5 @@ status: intake
 ## Request
 
 fix 'make release'
+
+DEVELOPMENT_TEAM exists in env
