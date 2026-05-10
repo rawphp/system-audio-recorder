@@ -50,6 +50,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: System Audio Recorder
+        PRODUCT_MODULE_NAME: SystemAudioRecorder
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.SystemAudioRecorder
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/SystemAudioRecorder.entitlements
@@ -74,6 +75,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomkaczocha.AudioEngineTests
         GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/System Audio Recorder.app/Contents/MacOS/System Audio Recorder"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 
 schemes:
   SystemAudioRecorder:
