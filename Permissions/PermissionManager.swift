@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import CoreAudio
 import Observation
@@ -54,6 +55,21 @@ final class _TimerBox: @unchecked Sendable {
     func cancel() { timer?.cancel(); timer = nil }
 }
 
+// MARK: - _ObserverBox (nonisolated notification-observer wrapper for deinit)
+
+/// Wraps a `NotificationCenter` observer token in a class so it can be removed
+/// from a `nonisolated` `deinit` context without crossing the `@MainActor`
+/// isolation boundary.
+final class _ObserverBox: @unchecked Sendable {
+    var token: NSObjectProtocol?
+    func remove() {
+        if let t = token {
+            NotificationCenter.default.removeObserver(t)
+            token = nil
+        }
+    }
+}
+
 // MARK: - PermissionManager
 
 /// `@Observable` permission gate consumed by the UI and audio engine layers.
@@ -85,6 +101,9 @@ public final class PermissionManager {
     // Stored nonisolated so deinit (which is nonisolated) can cancel without
     // crossing the @MainActor isolation boundary.
     private let timerBox: _TimerBox
+    /// Wraps the foreground-notification observer token so it can be removed
+    /// from the `nonisolated` `deinit` without crossing the `@MainActor` boundary.
+    private let observerBox: _ObserverBox
     private var micPromptIssued = false
 
     // MARK: - Initialisation
@@ -102,11 +121,14 @@ public final class PermissionManager {
         self.audioTapProber = audioTapProber ?? { PermissionManager._defaultAudioTapProbe() }
         self.microphoneStatus = micProvider.status
         self.timerBox = _TimerBox()
+        self.observerBox = _ObserverBox()
         startPolling()
+        startForegroundObserver()
     }
 
     deinit {
         timerBox.cancel()
+        observerBox.remove()
     }
 
     // MARK: - Microphone
@@ -167,6 +189,22 @@ public final class PermissionManager {
         return status == .available
     }
 
+    /// Re-run the audio-tap probe and update `audioTapStatus`.
+    ///
+    /// This is the public seam consumed by REQ-049 (menu-open trigger) and by
+    /// the `NSApplication.didBecomeActiveNotification` observer registered in
+    /// `init`. The probe is event-driven (not on a timer) because
+    /// `AudioHardwareCreateProcessTap` is heavyweight.
+    ///
+    /// The implementation schedules an `async` task on the `@MainActor` so the
+    /// synchronous call site in the notification observer does not need to `await`.
+    public func refreshAudioTapStatus() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            _ = await self.requestAudioTap()
+        }
+    }
+
     // MARK: - Private helpers
 
     /// Production CoreAudio probe. Static so it can be stored as a closure without
@@ -215,5 +253,23 @@ public final class PermissionManager {
         }
         timer.resume()
         timerBox.timer = timer
+    }
+
+    /// Register an observer for `NSApplication.didBecomeActiveNotification` so
+    /// that granting the Screen Recording entitlement in System Settings while
+    /// the app is in the background is reflected without relaunch.
+    ///
+    /// The token is stored in `observerBox` — a nonisolated wrapper that
+    /// `deinit` can call `remove()` on without crossing the `@MainActor`
+    /// isolation boundary.
+    private func startForegroundObserver() {
+        let token = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshAudioTapStatus()
+        }
+        observerBox.token = token
     }
 }

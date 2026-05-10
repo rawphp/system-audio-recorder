@@ -169,4 +169,46 @@ final class PermissionManagerTests: XCTestCase {
         XCTAssertEqual(pm.audioTapStatus, .deniedByEntitlement,
                        "audioTapStatus must reflect .deniedByEntitlement when prober reports it")
     }
+
+    // MARK: - refreshAudioTapStatus() public seam (REQ-048)
+
+    /// `refreshAudioTapStatus()` must invoke the prober and update `audioTapStatus`.
+    func testRefreshAudioTapStatusInvokesProber() async {
+        var proberCallCount = 0
+        let stub = StubMicrophoneAuthorizationProvider(status: .notDetermined)
+        let pm = PermissionManager(micProvider: stub, audioTapProber: {
+            proberCallCount += 1
+            return .available
+        })
+        pm.refreshAudioTapStatus()
+        // refreshAudioTapStatus schedules an async task; yield to let it run.
+        await Task.yield()
+        await Task.yield()
+        XCTAssertGreaterThan(proberCallCount, 0,
+                             "refreshAudioTapStatus() must invoke the audio-tap prober")
+    }
+
+    /// Posting `didBecomeActiveNotification` must cause the prober to be re-invoked.
+    func testForegroundNotificationTriggersReprobe() async throws {
+        var proberCallCount = 0
+        let stub = StubMicrophoneAuthorizationProvider(status: .notDetermined)
+        let pm = PermissionManager(micProvider: stub, audioTapProber: {
+            proberCallCount += 1
+            return .available
+        })
+        let countBefore = proberCallCount
+
+        // Post the foreground notification synchronously on main.
+        NotificationCenter.default.post(
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
+
+        // Yield to allow the async task spawned by the observer to execute.
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertGreaterThan(proberCallCount, countBefore,
+                             "didBecomeActiveNotification must trigger a re-probe of audio tap status")
+    }
 }
