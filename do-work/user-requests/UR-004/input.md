@@ -1,8 +1,31 @@
 ---
 ur: UR-004
 received: 2026-05-10
-status: intake
+status: captured
+classification: bug-fix
+layers_in_scope: []
+layer_decisions: {}
+reqs:
+  - { id: REQ-044, layer: none, integration_confidence: n/a }
+  - { id: REQ-045, layer: none, integration_confidence: n/a }
+acknowledged_partials: []
 ---
+
+<!-- capture-summary-start -->
+## Capture summary (2026-05-10)
+
+| Item | Value |
+|---|---|
+| Classification | bug-fix |
+| Layers in scope | (none — bug-fix) |
+| Layer decisions | (none — all covered) |
+| REQs generated | 2 |
+
+| REQ | Layer | Integration confidence |
+|---|---|---|
+| REQ-044 | none | n/a |
+| REQ-045 | none | n/a |
+<!-- capture-summary-end -->
 
 # UR-004: User Request
 
