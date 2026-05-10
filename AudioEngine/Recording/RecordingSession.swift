@@ -62,13 +62,21 @@ public struct SessionConfig: Sendable {
     /// later wire this from `UserDefaults`.)
     public let autoStopSilenceSeconds: TimeInterval?
 
+    /// Errors observed during source construction (e.g. per-pid emitter
+    /// failures from `ProcessTapCapture` when one pid in `Everything` mode
+    /// fails to tap). `RecordingSession.start` forwards each entry to its
+    /// `errorStream` immediately after entering `.recording`, so REQ-033's
+    /// `ErrorSurface` can render them. Empty by default. (REQ-045 / UR-004.)
+    public let initialErrors: [PerPIDInitFailure]
+
     public init(
         sources: [Source],
         outputMode: OutputMode,
         outputFolder: URL,
         timestamp: String,
         autoStopDuration: TimeInterval? = nil,
-        autoStopSilenceSeconds: TimeInterval? = nil
+        autoStopSilenceSeconds: TimeInterval? = nil,
+        initialErrors: [PerPIDInitFailure] = []
     ) {
         self.sources = sources
         self.outputMode = outputMode
@@ -76,6 +84,7 @@ public struct SessionConfig: Sendable {
         self.timestamp = timestamp
         self.autoStopDuration = autoStopDuration
         self.autoStopSilenceSeconds = autoStopSilenceSeconds
+        self.initialErrors = initialErrors
     }
 }
 
@@ -333,6 +342,14 @@ public actor RecordingSession {
         }
 
         state = .recording
+
+        // Forward any source-construction failures captured by the builder
+        // (e.g. ProcessTapCapture per-pid emitter failures in Everything mode)
+        // so REQ-033's ErrorSurface can render them via the existing channel.
+        // (REQ-045 / UR-004.)
+        for failure in config.initialErrors {
+            errorContinuation.yield(failure)
+        }
 
         // Arm the auto-stop timer if configured.
         if let duration = config.autoStopDuration {

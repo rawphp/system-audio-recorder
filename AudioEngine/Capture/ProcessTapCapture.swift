@@ -44,6 +44,23 @@ public protocol PerProcessEmitterFactory {
 
 // MARK: - ProcessTapCapture
 
+/// Per-pid emitter construction failure recorded during `ProcessTapCapture.init`.
+/// Surfaces via `ProcessTapCapture.initFailures` so callers can route the
+/// failures to their error UI (REQ-045 / UR-004).
+public struct PerPIDInitFailure: Error, Sendable, Equatable, CustomStringConvertible {
+    public let pid: pid_t
+    public let underlying: CaptureError
+
+    public init(pid: pid_t, underlying: CaptureError) {
+        self.pid = pid
+        self.underlying = underlying
+    }
+
+    public var description: String {
+        "ProcessTap construction failed for pid \(pid): \(underlying)"
+    }
+}
+
 /// Wires Core Audio Process Taps to per-pid `AsyncStream<AVAudioPCMBuffer>`.
 ///
 /// Default behavior (production) uses `RealEmitterFactory`, which builds a
@@ -51,9 +68,22 @@ public protocol PerProcessEmitterFactory {
 /// for each pid.
 ///
 /// Tests inject a custom `PerProcessEmitterFactory` to bypass Core Audio.
+///
+/// **REQ-045 (UR-004) graceful failure semantics:** if some pids fail to
+/// construct an emitter while others succeed, the capture is still created
+/// and exposes streams for the survivors. Failed pids are recorded in
+/// `initFailures` for the caller to surface via its error UI. The init only
+/// throws when *every* pid fails (preserving fail-fast for single-pid
+/// `Specific App` mode and the worst-case all-failed scenario).
 public final class ProcessTapCapture: AudioBufferEmitter {
 
     public private(set) var streams: [pid_t: AsyncStream<AVAudioPCMBuffer>] = [:]
+
+    /// Per-pid emitter construction failures observed during `init`. Empty
+    /// when every requested pid produced an emitter successfully. Callers
+    /// (e.g. `RecordingSession`) forward these to their error stream so UI
+    /// surfaces (REQ-033) can render them.
+    public let initFailures: [PerPIDInitFailure]
 
     private var emitters: [pid_t: PerProcessEmitter] = [:]
     private let factory: PerProcessEmitterFactory
@@ -76,10 +106,28 @@ public final class ProcessTapCapture: AudioBufferEmitter {
         self.factory = factory
         self.alivenessCheck = alivenessCheck
 
+        var failures: [PerPIDInitFailure] = []
         for pid in pids {
-            let emitter = try factory.makeEmitter(for: pid)
-            emitters[pid] = emitter
-            streams[pid] = emitter.stream
+            do {
+                let emitter = try factory.makeEmitter(for: pid)
+                emitters[pid] = emitter
+                streams[pid] = emitter.stream
+            } catch let captureError as CaptureError {
+                failures.append(PerPIDInitFailure(pid: pid, underlying: captureError))
+            } catch {
+                // Real factories only throw CaptureError; this branch wraps any
+                // unexpected error type (e.g. test injection mishaps) so the
+                // initFailures contract holds.
+                failures.append(PerPIDInitFailure(pid: pid, underlying: .tapCreationFailed(-1)))
+            }
+        }
+        self.initFailures = failures
+
+        // If every pid failed, propagate the first error so callers see the
+        // same shape they did before REQ-045 (single-pid Specific App mode
+        // still fails fast; full-failure Everything still throws).
+        if emitters.isEmpty, let first = failures.first {
+            throw first.underlying
         }
 
         startAlivenessPolling()

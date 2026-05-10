@@ -98,13 +98,21 @@ final class MockProcessEmitter: PerProcessEmitter {
 /// Factory that produces `MockProcessEmitter`s and starts them ticking.
 final class MockEmitterFactory: PerProcessEmitterFactory {
     let dieAfterBuffersByPID: [pid_t: Int]
+    /// Pids for which `makeEmitter` should throw the configured error instead
+    /// of producing an emitter — used by REQ-045 graceful-failure tests.
+    let failByPID: [pid_t: CaptureError]
     private(set) var createdEmitters: [pid_t: MockProcessEmitter] = [:]
 
-    init(dieAfterBuffersByPID: [pid_t: Int] = [:]) {
+    init(
+        dieAfterBuffersByPID: [pid_t: Int] = [:],
+        failByPID: [pid_t: CaptureError] = [:]
+    ) {
         self.dieAfterBuffersByPID = dieAfterBuffersByPID
+        self.failByPID = failByPID
     }
 
     func makeEmitter(for pid: pid_t) throws -> PerProcessEmitter {
+        if let err = failByPID[pid] { throw err }
         let dieAfter = dieAfterBuffersByPID[pid]
         let emitter = MockProcessEmitter(pid: pid, dieAfterBuffers: dieAfter)
         createdEmitters[pid] = emitter
@@ -370,6 +378,81 @@ final class ProcessTapCaptureTests: XCTestCase {
             default:
                 XCTFail("Unexpected CaptureError: \(error)")
             }
+        }
+    }
+
+    // MARK: - REQ-045: Graceful per-pid emitter failure
+
+    // MARK: testInitContinuesWhenOnePidFails (REQ-045)
+    //
+    // 5 pids, one configured to throw. The capture must initialise successfully
+    // and expose streams for the four healthy pids. The single failure must be
+    // recorded in `initFailures` with its pid + underlying error.
+    func testInitContinuesWhenOnePidFails() throws {
+        let factory = MockEmitterFactory(
+            failByPID: [202: .tapCreationFailed(-1)]
+        )
+        let capture = try ProcessTapCapture(
+            pids: [101, 202, 303, 404, 505],
+            factory: factory,
+            alivenessCheck: { _ in true }
+        )
+        defer { capture.stop() }
+
+        // Healthy pids have streams.
+        XCTAssertNotNil(capture.streams[101])
+        XCTAssertNotNil(capture.streams[303])
+        XCTAssertNotNil(capture.streams[404])
+        XCTAssertNotNil(capture.streams[505])
+        XCTAssertEqual(capture.streams.count, 4, "Failed pid must be absent from streams map")
+
+        // Failing pid is absent.
+        XCTAssertNil(capture.streams[202])
+
+        // Failure recorded with structured pid + error.
+        XCTAssertEqual(capture.initFailures.count, 1)
+        XCTAssertEqual(capture.initFailures.first?.pid, 202)
+        XCTAssertEqual(capture.initFailures.first?.underlying, .tapCreationFailed(-1))
+    }
+
+    // MARK: testInitThrowsWhenAllPidsFail (REQ-045)
+    //
+    // If every pid fails, init must throw the first captured error so callers
+    // see the same shape as today's complete-failure path.
+    func testInitThrowsWhenAllPidsFail() {
+        let factory = MockEmitterFactory(
+            failByPID: [
+                101: .tapCreationFailed(-2),
+                202: .aggregateDeviceCreationFailed(-3),
+                303: .audioUnitFailed(-4)
+            ]
+        )
+
+        XCTAssertThrowsError(try ProcessTapCapture(
+            pids: [101, 202, 303],
+            factory: factory,
+            alivenessCheck: { _ in true }
+        )) { error in
+            // First pid's error should propagate.
+            XCTAssertEqual(error as? CaptureError, .tapCreationFailed(-2))
+        }
+    }
+
+    // MARK: testInitThrowsWhenSinglePidFails (REQ-045 regression guard)
+    //
+    // Single-pid input where the only pid fails must throw — preserves the
+    // existing fail-fast behaviour for `Specific App` mode.
+    func testInitThrowsWhenSinglePidFails() {
+        let factory = MockEmitterFactory(
+            failByPID: [42: .pidTranslationFailed(42)]
+        )
+
+        XCTAssertThrowsError(try ProcessTapCapture(
+            pids: [42],
+            factory: factory,
+            alivenessCheck: { _ in true }
+        )) { error in
+            XCTAssertEqual(error as? CaptureError, .pidTranslationFailed(42))
         }
     }
 }

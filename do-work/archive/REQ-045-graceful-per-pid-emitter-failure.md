@@ -1,7 +1,7 @@
 # REQ-045: Graceful Per-PID Emitter Failure in ProcessTapCapture
 
 **UR:** UR-004
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -29,14 +29,14 @@ Connector observation from ideate: typed errors should route through the existin
 
 ## Acceptance Criteria
 
-- [ ] `ProcessTapCapture(pids:factory:alivenessCheck:)` no longer aborts when one pid's `factory.makeEmitter` throws — surviving pids' streams remain in `streams` and aliveness polling runs normally for them.
-- [ ] When every pid fails, `ProcessTapCapture.init` throws the first captured `CaptureError` (preserves today's shape for `Specific App` and for the worst-case `Everything` scenario where every helper is unreachable).
-- [ ] Single-pid input where the only pid fails throws as today (no behaviour change for `Specific App` mode).
-- [ ] Each per-pid failure surfaces a typed `CaptureError` (including its pid) downstream — `RecordingSession.start(config:)` yields the failures into its existing `errorContinuation` so REQ-033 ErrorSurface can render them.
-- [ ] New unit test in `Tests/AudioEngineTests/`: mock `PerProcessEmitterFactory` returns 5 pids; pid #2 throws on creation; resulting capture exposes streams for the other 4 pids and surfaces exactly one failure entry referencing pid #2.
-- [ ] New unit test: mock factory throws for all 5 pids; init throws the first error.
-- [ ] New unit test: single-pid input where the only pid throws — init throws (regression guard for `Specific App` mode).
-- [ ] Existing `MockAudioSourceTests` and `RecordingSession` integration tests continue to pass.
+- [x] `ProcessTapCapture(pids:factory:alivenessCheck:)` no longer aborts when one pid's `factory.makeEmitter` throws — surviving pids' streams remain in `streams` and aliveness polling runs normally for them.
+- [x] When every pid fails, `ProcessTapCapture.init` throws the first captured `CaptureError` (preserves today's shape for `Specific App` and for the worst-case `Everything` scenario where every helper is unreachable).
+- [x] Single-pid input where the only pid fails throws as today (no behaviour change for `Specific App` mode).
+- [x] Each per-pid failure surfaces a typed `CaptureError` (including its pid) downstream — `RecordingSession.start(config:)` yields the failures into its existing `errorContinuation` so REQ-033 ErrorSurface can render them.
+- [x] New unit test in `Tests/AudioEngineTests/`: mock `PerProcessEmitterFactory` returns 5 pids; pid #2 throws on creation; resulting capture exposes streams for the other 4 pids and surfaces exactly one failure entry referencing pid #2.
+- [x] New unit test: mock factory throws for all 5 pids; init throws the first error.
+- [x] New unit test: single-pid input where the only pid throws — init throws (regression guard for `Specific App` mode).
+- [x] Existing `MockAudioSourceTests` and `RecordingSession` integration tests continue to pass.
 
 ## Verification Steps
 
@@ -57,3 +57,16 @@ Connector observation from ideate: typed errors should route through the existin
 ## Assets
 
 (none)
+
+## Outputs
+
+- `AudioEngine/Capture/ProcessTapCapture.swift` — added `PerPIDInitFailure` (Sendable, Equatable error type carrying pid + CaptureError); replaced fail-fast init loop with per-pid try/catch that collects failures into `initFailures`; throws only when every pid fails.
+- `AudioEngine/Recording/RecordingSession.swift` — `SessionConfig` gains `initialErrors: [PerPIDInitFailure]` (default []); `RecordingSession.start` yields each entry to `errorContinuation` immediately after entering `.recording`.
+- `App/AppStore.swift` — `DefaultSessionConfigBuilder.build()` collects `capture.initFailures` and forwards them via the new `SessionConfig.initialErrors` parameter.
+- `Tests/AudioEngineTests/ProcessTapCaptureTests.swift` — `MockEmitterFactory` gains a `failByPID:` injection; 3 new tests for the REQ-045 contract (one-failing-pid, all-failing-pids, single-pid-failure regression).
+
+## Verification Notes
+
+- **Verification Step 1 (test):** PASS — full AudioEngine suite 369/369 (3 new REQ-045 tests + 1 unrelated pre-existing skip).
+- **Verification Step 2 (build):** PASS — `xcodebuild ... build` clean.
+- **Verification Step 3 (runtime — synthetic failure injection):** PENDING USER. Worker can't add/revert temp debug-only flags without leaving them in the diff, and without REQ-046's logging it's hard to confirm the error-surface entry. Easier to validate this once REQ-046 ships and a renderer pid is naturally tap-denied in the wild.

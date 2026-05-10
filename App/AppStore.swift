@@ -91,6 +91,7 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
             (settings.outputMode == .separate) ? .separate : .mixed
 
         var sources: [SessionConfig.Source] = []
+        var initialErrors: [PerPIDInitFailure] = []
 
         switch preset {
         case .micOnly:
@@ -110,7 +111,12 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
                 throw BuilderError.noAudibleProcesses
             }
 
+            // ProcessTapCapture only throws when EVERY pid fails (REQ-045 /
+            // UR-004 graceful failure). Surviving pids' streams are exposed
+            // via `capture.streams`; failed pids are surfaced via initFailures
+            // for the recording session to forward to REQ-033 ErrorSurface.
             let capture = try ProcessTapCapture(pids: pids)
+            initialErrors.append(contentsOf: capture.initFailures)
             for pid in pids {
                 guard let emitter = ProcessTapSourceEmitter(
                     id: "app:\(pid)",
@@ -140,7 +146,8 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
             outputFolder: outputFolder,
             timestamp: timestamp,
             autoStopDuration: settings.autoStopDurationSeconds,
-            autoStopSilenceSeconds: settings.autoStopSilenceSeconds
+            autoStopSilenceSeconds: settings.autoStopSilenceSeconds,
+            initialErrors: initialErrors
         )
     }
 
