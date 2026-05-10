@@ -10,6 +10,8 @@ final class MockProcessListProvider: ProcessListProvider {
     struct Entry {
         let objectID: AudioObjectID
         let pid: pid_t
+        var bundleID: String? = nil
+        var executableName: String? = nil
     }
 
     var entries: [Entry] = []
@@ -20,6 +22,14 @@ final class MockProcessListProvider: ProcessListProvider {
 
     func pid(for objectID: AudioObjectID) -> pid_t? {
         entries.first { $0.objectID == objectID }?.pid
+    }
+
+    func bundleID(for objectID: AudioObjectID) -> String? {
+        entries.first { $0.objectID == objectID }?.bundleID
+    }
+
+    func executableName(for objectID: AudioObjectID) -> String? {
+        entries.first { $0.objectID == objectID }?.executableName
     }
 }
 
@@ -179,5 +189,93 @@ final class AudioSourceCatalogTests: XCTestCase {
         let catalog = AudioSourceCatalog(provider: EmptyProcessListProvider())
         catalog.refresh()
         XCTAssertTrue(catalog.processes.isEmpty, "Empty provider must yield an empty process list")
+    }
+
+    // MARK: testHelperProcessIncludedWhenNSWorkspaceMissesIt (UR-004)
+    //
+    // Regression guard for UR-004: a process that the HAL provides a bundle ID
+    // for must be included even when NSRunningApplication(processIdentifier:)
+    // returns nil for its pid. We use a synthetic pid that NSRunningApplication
+    // cannot resolve (a value safely above any realistic running pid).
+    func testHelperProcessIncludedWhenNSWorkspaceMissesIt() {
+        // Pick a pid that NSRunningApplication will not resolve. pid_t is Int32;
+        // values around Int32.max have no chance of matching a real process.
+        let unresolvablePID: pid_t = pid_t.max - 1
+        XCTAssertNil(NSRunningApplication(processIdentifier: unresolvablePID),
+            "Precondition: NSRunningApplication must return nil for the test pid")
+
+        let mock = MockProcessListProvider()
+        mock.entries = [
+            .init(
+                objectID: 4242,
+                pid: unresolvablePID,
+                bundleID: "com.google.Chrome.helper.Renderer",
+                executableName: "Google Chrome Helper (Renderer)"
+            )
+        ]
+
+        let catalog = AudioSourceCatalog(provider: mock)
+        catalog.refresh()
+
+        XCTAssertEqual(catalog.processes.count, 1,
+            "Helper process must be retained when HAL provides a bundle ID, even if NSWorkspace returns nil")
+        let p = try? XCTUnwrap(catalog.processes.first)
+        XCTAssertEqual(p?.bundleID, "com.google.Chrome.helper.Renderer")
+        XCTAssertEqual(p?.displayName, "Google Chrome Helper (Renderer)",
+            "Display name should fall back to the HAL executable name when NSRunningApplication is nil")
+        XCTAssertEqual(p?.pid, unresolvablePID)
+    }
+
+    // MARK: testHelperFallbackToBundleIDLastComponentWhenNoExecutableName (UR-004)
+    //
+    // When NSRunningApplication returns nil AND HAL doesn't provide an
+    // executable name, the display name must fall back to the bundle ID's
+    // last `.`-separated component.
+    func testHelperFallbackToBundleIDLastComponentWhenNoExecutableName() {
+        let unresolvablePID: pid_t = pid_t.max - 2
+        XCTAssertNil(NSRunningApplication(processIdentifier: unresolvablePID))
+
+        let mock = MockProcessListProvider()
+        mock.entries = [
+            .init(
+                objectID: 4243,
+                pid: unresolvablePID,
+                bundleID: "com.example.SomeHelper",
+                executableName: nil
+            )
+        ]
+
+        let catalog = AudioSourceCatalog(provider: mock)
+        catalog.refresh()
+
+        XCTAssertEqual(catalog.processes.count, 1)
+        XCTAssertEqual(catalog.processes.first?.displayName, "SomeHelper",
+            "Display name should fall back to bundle ID's last component when no exec name available")
+    }
+
+    // MARK: testProcessDroppedWhenAllSourcesYieldNoBundleID (UR-004)
+    //
+    // If neither HAL nor NSRunningApplication can supply a bundle ID, the
+    // process must still be filtered out (preserves the original
+    // testNoBundleIDIsFiltered guarantee under the new resolution chain).
+    func testProcessDroppedWhenAllSourcesYieldNoBundleID() {
+        let unresolvablePID: pid_t = pid_t.max - 3
+        XCTAssertNil(NSRunningApplication(processIdentifier: unresolvablePID))
+
+        let mock = MockProcessListProvider()
+        mock.entries = [
+            .init(
+                objectID: 4244,
+                pid: unresolvablePID,
+                bundleID: nil,
+                executableName: nil
+            )
+        ]
+
+        let catalog = AudioSourceCatalog(provider: mock)
+        catalog.refresh()
+
+        XCTAssertTrue(catalog.processes.isEmpty,
+            "Process with no bundle ID from any source must be filtered")
     }
 }

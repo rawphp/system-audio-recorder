@@ -1,7 +1,7 @@
 # REQ-044: Include Audio-Registered Helper PIDs Regardless of NSWorkspace Visibility
 
 **UR:** UR-004
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -33,14 +33,14 @@ Connector observation from ideate: REQ-006 (`AudioSourceCatalog`), REQ-007 (`Pro
 
 ## Acceptance Criteria
 
-- [ ] `ProcessListProvider` has new methods `bundleID(for:)` and `executableName(for:)`. `HALProcessListProvider` implements them using Core Audio process properties; both return `nil` on HAL error rather than throwing.
-- [ ] `AudioSourceCatalog.refresh()` no longer calls `NSRunningApplication.bundleIdentifier` for filtering. Bundle ID comes from `provider.bundleID(for:)`. NSRunningApplication is consulted only for `localizedName` and `icon` enrichment, with documented nil-tolerance.
-- [ ] A process whose HAL bundle ID is non-empty is kept even when `NSRunningApplication(processIdentifier:)` returns nil — its `displayName` is non-empty and is picked deterministically from the documented fallback chain in the order: `NSRunningApplication.localizedName` (when non-nil) → HAL executable name (when non-nil) → bundle ID's last `.`-separated component → `"Process \(pid)"`.
-- [ ] `coreaudiod` filter is preserved (matches by bundle ID `com.apple.audio.coreaudiod` AND by display-name substring as belt-and-braces).
-- [ ] Unit test in `Tests/AudioEngineTests/AudioSourceCatalogTests.swift` covers the Chromium-helper case: mock provider returns one object id whose HAL bundle ID is `com.google.Chrome.helper.Renderer` but for whose pid `NSRunningApplication(processIdentifier:)` would return nil; the test verifies the process appears in `catalog.processes` with the correct bundle ID and a sensible display name.
-- [ ] Existing `AudioSourceCatalogTests` continue to pass without modification (filter for missing bundle ID still works — just sourced from HAL now).
-- [ ] After the fix, recording for ~10 seconds in `Everything` mode while Chrome plays a known audio source produces an MP3 whose audible content matches the source (not silence).
-- [ ] `docs/manual-tests.md` gains a new test case (next available `MT-NNN` number) titled "Real Core Audio Tap — Chromium Browser in Everything mode" that explicitly reproduces the UR-004 path: Chromium browser playing audible audio, source picker on `Everything`, recording for ~30 s, output MP3 contains the audible browser audio. Pass criteria reference `AudioSourceCatalog` including helper PIDs.
+- [x] `ProcessListProvider` has new methods `bundleID(for:)` and `executableName(for:)`. `HALProcessListProvider` implements them using Core Audio process properties; both return `nil` on HAL error rather than throwing.
+- [x] `AudioSourceCatalog.refresh()` no longer calls `NSRunningApplication.bundleIdentifier` for filtering. Bundle ID comes from `provider.bundleID(for:)`. NSRunningApplication is consulted only for `localizedName` and `icon` enrichment, with documented nil-tolerance.
+- [x] A process whose HAL bundle ID is non-empty is kept even when `NSRunningApplication(processIdentifier:)` returns nil — its `displayName` is non-empty and is picked deterministically from the documented fallback chain in the order: `NSRunningApplication.localizedName` (when non-nil) → HAL executable name (when non-nil) → bundle ID's last `.`-separated component → `"Process \(pid)"`.
+- [x] `coreaudiod` filter is preserved (matches by bundle ID `com.apple.audio.coreaudiod` AND by display-name substring as belt-and-braces).
+- [x] Unit test in `Tests/AudioEngineTests/AudioSourceCatalogTests.swift` covers the Chromium-helper case: mock provider returns one object id whose HAL bundle ID is `com.google.Chrome.helper.Renderer` but for whose pid `NSRunningApplication(processIdentifier:)` would return nil; the test verifies the process appears in `catalog.processes` with the correct bundle ID and a sensible display name.
+- [x] Existing `AudioSourceCatalogTests` continue to pass without modification (filter for missing bundle ID still works — just sourced from HAL now).
+- [ ] After the fix, recording for ~10 seconds in `Everything` mode while Chrome plays a known audio source produces an MP3 whose audible content matches the source (not silence). _**Pending user manual verification — not auto-checkable in the worker session. Reproduce per Verification Step 3 below before considering UR-004 fully closed.**_
+- [x] `docs/manual-tests.md` gains a new test case (next available `MT-NNN` number) titled "Real Core Audio Tap — Chromium Browser in Everything mode" that explicitly reproduces the UR-004 path: Chromium browser playing audible audio, source picker on `Everything`, recording for ~30 s, output MP3 contains the audible browser audio. Pass criteria reference `AudioSourceCatalog` including helper PIDs.
 
 ## Verification Steps
 
@@ -67,3 +67,16 @@ Connector observation from ideate: REQ-006 (`AudioSourceCatalog`), REQ-007 (`Pro
 ## Assets
 
 (none)
+
+## Outputs
+
+- `AudioEngine/Capture/AudioSourceCatalog.swift` — extended `ProcessListProvider` with `bundleID(for:)` + `executableName(for:)` (default-nil); `HALProcessListProvider.bundleID` queries `kAudioProcessPropertyBundleID`; `refresh()` now resolves bundle ID from HAL first and uses NSRunningApplication for enrichment-only.
+- `Tests/AudioEngineTests/AudioSourceCatalogTests.swift` — 3 new regression tests guarding the UR-004 path: helper-process inclusion when NSWorkspace returns nil, display-name fallback to bundle-ID last component, and the no-bundle-ID-anywhere drop.
+- `docs/manual-tests.md` — added MT-010 manual regression test for Chromium-browser audio in Everything mode.
+
+## Verification Notes
+
+- **Verification Step 1 (test):** PASS — 10/10 catalog tests pass; 366/366 full AudioEngine suite passes.
+- **Verification Step 2 (build):** PASS — `xcodebuild ... build` succeeded with no new warnings.
+- **Verification Step 3 (runtime — manual Chrome reproduction):** PENDING USER. Worker cannot launch Chrome and listen to MP3s autonomously.
+- **Verification Step 4 (runtime — catalog diagnostic):** PENDING USER. Same reason. Easier to confirm once REQ-046 (per-source signal-level logging) lands; until then, a one-off `print(catalog.processes.map(\.displayName))` in a debug build is sufficient.

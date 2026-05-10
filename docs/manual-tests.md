@@ -393,3 +393,42 @@
 - Gatekeeper blocks the app launch with an "unidentified developer" dialog.
 - `spctl --assess` returns `rejected`.
 - App shows "is damaged and can't be opened. You should move it to the Trash."
+
+---
+
+## MT-010: Real Core Audio Tap — Chromium Browser in Everything Mode (REQ-044)
+
+**Goal**: Regression guard for UR-004. Chromium-family browsers (Chrome, Arc, Edge, Brave) emit audio from helper PIDs (e.g. `Google Chrome Helper (Renderer)`) that `NSRunningApplication(processIdentifier:)` does not surface. Confirm `AudioSourceCatalog` includes those helpers via the HAL bundle-ID source so `Everything` mode actually captures their audio.
+
+### Setup
+
+1. Open a Chromium-based browser (Chrome, Arc, Edge, or Brave).
+2. Navigate to a recognisable audible source (e.g. a YouTube clip with clear speech, ~1 minute long). Start playback and confirm you hear audio from your Mac's speakers.
+3. Open the System Audio Recorder app.
+4. Confirm the source dropdown shows **Everything** as the default selection (do **not** switch to Specific app for this test — `Everything` mode is the path under test).
+
+### Steps
+
+1. Click **Start Recording**.
+2. Confirm the level meter is non-zero while audio plays.
+3. Let the recording run for **30 seconds** without pausing or switching tabs.
+4. Click **Stop**.
+5. Wait for the toast to show *"Saved → ~/Music/Recordings/…mp3"*.
+6. Open the MP3 in QuickTime Player.
+
+### Pass Criteria
+
+- [ ] Level meter is non-zero throughout the 30 s recording window (proves at least one helper PID is feeding the mixer).
+- [ ] Output MP3 plays back with clearly audible browser audio that matches what was playing in the browser — speech from YouTube, music, etc.
+- [ ] MP3 duration is between 28 s and 32 s.
+- [ ] No "silent file" regression: the file is not 0 bytes and does not play as silence (this was the UR-004 failure mode before the catalog fix).
+
+### Fail Criteria
+
+- Output MP3 plays as silence despite audible browser playback during recording (UR-004 regression).
+- Level meter stays at −∞ dB throughout the recording.
+- File is 0 bytes or fails to open.
+
+### Notes
+
+The fix for this scenario lives in `AudioEngine/Capture/AudioSourceCatalog.swift` — bundle IDs are sourced from Core Audio's `kAudioProcessPropertyBundleID` first, with `NSRunningApplication` as enrichment-only. If this test starts failing, run the unit test suite (`AudioSourceCatalogTests`) first to catch the regression at the protocol-contract level before chasing it at the integration level.
