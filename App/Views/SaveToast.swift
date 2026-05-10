@@ -27,10 +27,13 @@ extension EncodingQueue: EncodingQueueObservable {
 
 // MARK: - ToastState
 
-/// The four display states the toast can be in at any moment.
+/// The display states the toast can be in at any moment.
 public enum ToastState: Equatable {
     /// No toast visible.
     case hidden
+    /// Session stop-tail is running — show a spinner with "Finishing recording…"
+    /// This state is purely signal-driven (no auto-dismiss timer).
+    case finishingRecording
     /// A job is encoding — show a spinner with "Encoding…"
     case encoding(jobID: UUID)
     /// Encoding succeeded — show the MP3 path and a Reveal button.
@@ -42,6 +45,7 @@ public enum ToastState: Equatable {
     public static func == (lhs: ToastState, rhs: ToastState) -> Bool {
         switch (lhs, rhs) {
         case (.hidden, .hidden):                                   return true
+        case (.finishingRecording, .finishingRecording):           return true
         case (.encoding(let a), .encoding(let b)):                 return a == b
         case (.saved(let a), .saved(let b)):                       return a == b
         case (.failed(let a, _), .failed(let b, _)):               return a == b
@@ -179,6 +183,45 @@ public final class SaveToastViewModel {
         }
     }
 
+    // MARK: - Finishing-recording signal hook (REQ-063)
+
+    /// Called by `ContentView` via `.onChange(of: appStore?.isFinishingRecording)`
+    /// whenever `AppStore.isFinishingRecording` changes.
+    ///
+    /// - When `isFinishing` is `true`: transitions to `.finishingRecording` (if the
+    ///   toast is currently hidden or already finishing — does not interrupt an
+    ///   in-progress encoding toast).
+    /// - When `isFinishing` is `false`: if a job is already `running` in the queue,
+    ///   transitions directly to `.encoding` (no `.hidden` flicker); otherwise
+    ///   transitions to `.hidden`.
+    public func handleFinishingChange(isFinishing: Bool) {
+        if isFinishing {
+            // Only show the finishing toast from a neutral start.  If the toast
+            // is currently showing encoding/saved/failed from a prior session,
+            // don't interrupt it.
+            if case .hidden = toastState {
+                toastState = .finishingRecording
+            } else if case .finishingRecording = toastState {
+                // Already showing — no-op.
+            }
+            // If .encoding/.saved/.failed is showing from a prior job, leave it.
+        } else {
+            // Signal went false. Check the queue for a running job to hand off to.
+            if let runningJob = queue.running.last, activeJobID == nil || activeJobID == runningJob.id {
+                // Hand off directly to encoding — prevents .hidden flicker.
+                activeJobID = runningJob.id
+                dismissTask?.cancel()
+                dismissTask = nil
+                toastState = .encoding(jobID: runningJob.id)
+            } else if case .finishingRecording = toastState {
+                // No job running — simply hide.
+                toastState = .hidden
+            }
+            // In all other states (.encoding/.saved/.failed) leave the toast alone;
+            // the queue observer will drive it to completion.
+        }
+    }
+
     // MARK: - Actions
 
     /// Cancel the auto-dismiss timer, keeping the toast visible until manually dismissed.
@@ -204,7 +247,7 @@ public final class SaveToastViewModel {
             revealInFinder(url)
         case .failed(let url, _):
             revealInFinder(url)
-        case .encoding, .hidden:
+        case .encoding, .finishingRecording, .hidden:
             break
         }
     }
@@ -284,6 +327,17 @@ public struct SaveToast: View {
             switch viewModel.toastState {
             case .hidden:
                 EmptyView()
+
+            case .finishingRecording:
+                toastBackground {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .progressViewStyle(.circular)
+                        Text("Finishing recording…")
+                            .font(.callout)
+                    }
+                }
 
             case .encoding:
                 toastBackground {

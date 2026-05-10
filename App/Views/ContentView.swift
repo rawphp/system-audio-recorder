@@ -163,6 +163,11 @@ public struct ContentView: View {
                 viewModel.showSettings = true
             }
         }
+        // REQ-063: Forward the finishing-recording signal to the toast view-model
+        // so it can show "Finishing recording…" before any encoding job exists.
+        .onChange(of: appStore?.isFinishingRecording) { _, newValue in
+            toastVM?.handleFinishingChange(isFinishing: newValue ?? false)
+        }
         // Post-stop toast (REQ-027) — overlaid at the bottom of the window.
         .overlay(alignment: .bottom) {
             if let tvm = toastVM {

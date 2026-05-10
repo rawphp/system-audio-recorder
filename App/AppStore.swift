@@ -214,6 +214,13 @@ public final class AppStore {
     /// Allocated on `startRecording`, released on `stopRecording`.
     private var mixMeterRing: MeterRingBuffer?
 
+    /// Signals that `stopRecording()` has begun but `session.stop()` has not yet
+    /// returned. Flips `true` synchronously at the start of `stopRecording()` and
+    /// back to `false` once `await session.stop()` returns (success or failure).
+    /// `SaveToastViewModel` observes this to show the "Finishing recording…" toast.
+    /// (REQ-063)
+    public private(set) var isFinishingRecording: Bool = false
+
     /// Set to `true` by `MenuBarController`'s "Settings…" action so `ContentView`
     /// opens the `OutputSettingsView` sheet. Reset to `false` by `ContentView`
     /// when the sheet is dismissed. (REQ-031)
@@ -440,11 +447,19 @@ public final class AppStore {
         currentSession = nil
         sessionState = .stopped
 
+        // REQ-063: Signal that the stop-tail is in progress so the toast can
+        // show "Finishing recording…" before any encoding job exists.
+        isFinishingRecording = true
+
         // REQ-061: Drop the mix meter ring synchronously so the UI level meter
         // stops immediately when the user clicks Stop.
         tearDownMixMeter()
 
         let urls = await session.stop()
+
+        // REQ-063: Clear the finishing signal — always, regardless of whether
+        // stop() produced files or not (prevents stuck toast).
+        isFinishingRecording = false
 
         // Transition to .idle now that the session has fully drained.
         sessionState = .idle

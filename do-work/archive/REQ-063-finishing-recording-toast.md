@@ -1,7 +1,7 @@
 # REQ-063: Show "Finishing recording…" transient toast during stop-tail
 
 **UR:** UR-011
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** ui
 
@@ -23,13 +23,13 @@ Implementation outline (the implementer may adapt):
 
 ## Acceptance Criteria
 
-- [ ] `ToastState` gains a `finishingRecording` case; the existing `==` implementation handles it.
-- [ ] `AppStore` exposes an observable signal (e.g. `isFinishingRecording: Bool`) that flips `true` synchronously when `stopRecording()` begins and `false` after `await session.stop()` returns, regardless of whether the stop succeeded or threw.
-- [ ] `SaveToastViewModel` toast appears with "Finishing recording…" text and a progress spinner while the signal is `true`. The toast appears within ~50 ms of the Stop click (i.e. before any encoding job exists in the queue).
-- [ ] When the signal flips back to `false`, the toast either hides immediately (if no encoding job is running) or transitions to the existing `.encoding` state (if at least one job is in `running`). This avoids a flicker between states.
-- [ ] No auto-dismiss timer fires while in `.finishingRecording` — the state is purely signal-driven.
-- [ ] If `session.stop()` produces no files (failure path), the `.finishingRecording` toast disappears and the existing `.failed` toast path (when the encoding queue emits a failure) or no toast (when no job is enqueued) takes over. The user is never left with a stuck "Finishing…" toast.
-- [ ] Snapshot/UI test in `Tests/AudioEngineTests/SaveToastViewModelTests.swift` (or the existing equivalent) covers the new state transitions.
+- [x] `ToastState` gains a `finishingRecording` case; the existing `==` implementation handles it.
+- [x] `AppStore` exposes an observable signal (e.g. `isFinishingRecording: Bool`) that flips `true` synchronously when `stopRecording()` begins and `false` after `await session.stop()` returns, regardless of whether the stop succeeded or threw.
+- [x] `SaveToastViewModel` toast appears with "Finishing recording…" text and a progress spinner while the signal is `true`. The toast appears within ~50 ms of the Stop click (i.e. before any encoding job exists in the queue).
+- [x] When the signal flips back to `false`, the toast either hides immediately (if no encoding job is running) or transitions to the existing `.encoding` state (if at least one job is in `running`). This avoids a flicker between states.
+- [x] No auto-dismiss timer fires while in `.finishingRecording` — the state is purely signal-driven.
+- [x] If `session.stop()` produces no files (failure path), the `.finishingRecording` toast disappears and the existing `.failed` toast path (when the encoding queue emits a failure) or no toast (when no job is enqueued) takes over. The user is never left with a stuck "Finishing…" toast.
+- [x] Snapshot/UI test in `Tests/AudioEngineTests/SaveToastViewModelTests.swift` (or the existing equivalent) covers the new state transitions.
 
 ## Verification Steps
 
@@ -57,3 +57,18 @@ Implementation outline (the implementer may adapt):
 ## Assets
 
 (none)
+
+## Verification Steps Results
+
+1. **test** `xcodebuild test ... SaveToastTests` — PASSED (16/16 tests, 5 new)
+2. **build** `xcodebuild -scheme SystemAudioRecorder -configuration Debug build` — PASSED (zero errors, zero warnings)
+3. **ui** Launch and click Stop — [deferred-to-user]
+4. **ui** Screenshot after Stop — [deferred-to-user]
+5. **runtime** 5 start-stop cycles — [deferred-to-user]
+
+## Outputs
+
+- App/AppStore.swift — added `isFinishingRecording: Bool` property; flipped true/false in `stopRecording()`
+- App/Views/SaveToast.swift — added `ToastState.finishingRecording` case with `==` support; added `handleFinishingChange(isFinishing:)` to `SaveToastViewModel`; added spinner + "Finishing recording…" render branch in `SaveToast` body
+- App/Views/ContentView.swift — wired `.onChange(of: appStore?.isFinishingRecording)` to `toastVM?.handleFinishingChange(isFinishing:)`
+- Tests/AudioEngineTests/SaveToastTests.swift — added 5 new state-transition tests for `finishingRecording`

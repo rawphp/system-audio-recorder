@@ -291,6 +291,93 @@ final class SaveToastTests: XCTestCase {
     }
 
     // -----------------------------------------------------------------------
+    // MARK: - REQ-063: finishingRecording state transitions
+    // -----------------------------------------------------------------------
+
+    /// hidden → finishingRecording when isFinishingRecording = true
+    func testFinishingRecordingAppearsWhenSignalTrue() {
+        let (vm, _) = makeVM()
+        vm.handleFinishingChange(isFinishing: true)
+        if case .finishingRecording = vm.toastState {
+            // pass
+        } else {
+            XCTFail("Expected .finishingRecording when signal is true, got \(vm.toastState)")
+        }
+    }
+
+    /// finishingRecording → hidden when signal flips false and no encoding job is running
+    func testFinishingRecordingHidesWhenSignalFalseAndNoJob() {
+        let (vm, _) = makeVM()
+        vm.handleFinishingChange(isFinishing: true)
+        vm.handleFinishingChange(isFinishing: false)
+        if case .hidden = vm.toastState {
+            // pass
+        } else {
+            XCTFail("Expected .hidden when signal false with no job, got \(vm.toastState)")
+        }
+    }
+
+    /// finishingRecording → encoding (no .hidden flicker) when signal flips false
+    /// and a job is already in running.
+    func testFinishingRecordingHandsOffToEncodingWithoutFlicker() {
+        let (vm, mock) = makeVM()
+        vm.handleFinishingChange(isFinishing: true)
+
+        // A job starts running while we are still finishing.
+        let job = makeJob()
+        mock.simulateRunning(job: job)
+        vm.handleQueueChange()
+
+        // Signal goes false — should go directly to .encoding, NOT .hidden.
+        vm.handleFinishingChange(isFinishing: false)
+
+        if case .encoding(let id) = vm.toastState {
+            XCTAssertEqual(id, job.id)
+        } else {
+            XCTFail("Expected .encoding after handoff (no flicker through .hidden), got \(vm.toastState)")
+        }
+    }
+
+    /// Full happy path: hidden → finishingRecording → encoding → saved
+    func testFullHappyPath_finishingToEncodingToSaved() {
+        let (vm, mock) = makeVM(dismissAfter: 60)
+        let job = makeJob()
+
+        // 1. Stop clicked — finishing toast appears
+        vm.handleFinishingChange(isFinishing: true)
+        if case .finishingRecording = vm.toastState { /* ok */ }
+        else { XCTFail("Step 1: expected .finishingRecording, got \(vm.toastState)") }
+
+        // 2. Encoding job starts running while still finishing
+        mock.simulateRunning(job: job)
+        vm.handleQueueChange()
+
+        // 3. Session.stop() returns — signal goes false, toast should be .encoding
+        vm.handleFinishingChange(isFinishing: false)
+        if case .encoding(let id) = vm.toastState { XCTAssertEqual(id, job.id) }
+        else { XCTFail("Step 3: expected .encoding, got \(vm.toastState)") }
+
+        // 4. Encoding completes
+        mock.simulateCompleted(job: job)
+        vm.handleQueueChange()
+        if case .saved(let url) = vm.toastState { XCTAssertEqual(url, job.mp3URL) }
+        else { XCTFail("Step 4: expected .saved, got \(vm.toastState)") }
+    }
+
+    /// AC #5: No auto-dismiss timer fires while in .finishingRecording
+    func testNoAutoDismissWhileFinishingRecording() async throws {
+        let (vm, _) = makeVM(dismissAfter: 0.05) // very short dismiss
+        vm.handleFinishingChange(isFinishing: true)
+
+        // Wait past any timer that could have been scheduled
+        try await Task.sleep(nanoseconds: 200_000_000) // 200 ms
+
+        // Should still be finishingRecording, not dismissed
+        if case .finishingRecording = vm.toastState { /* pass */ }
+        else { XCTFail("Expected .finishingRecording (no auto-dismiss), got \(vm.toastState)") }
+    }
+
+    // -----------------------------------------------------------------------
     // MARK: - Private helpers
     // -----------------------------------------------------------------------
 
