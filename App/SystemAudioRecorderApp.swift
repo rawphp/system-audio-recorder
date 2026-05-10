@@ -51,5 +51,13 @@ struct SystemAudioRecorderApp: App {
                 }
         }
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .help) {
+                Button("System Audio Recorder User Guide…") {
+                    NSWorkspace.shared.open(UserGuide.url)
+                }
+                .keyboardShortcut("?", modifiers: .command)
+            }
+        }
     }
 }

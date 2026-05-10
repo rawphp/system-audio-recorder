@@ -18,6 +18,7 @@
 		278CE311BD6FB9D402BBD130 /* ProcessTapCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39296791DD3E68A550F16D44 /* ProcessTapCaptureTests.swift */; };
 		27BFDBEFD46187F5C86E4B90 /* ErrorSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E00C59ECCFA9F1275541F2 /* ErrorSurface.swift */; };
 		298961D2E226AB11487D8001 /* RecordControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D04A4AB8B1D689175038EA /* RecordControlsView.swift */; };
+		326F4F6B9428472EDEE2B04D /* UserGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49111B38F7A427268A82BF71 /* UserGuideTests.swift */; };
 		3425B67F408D83DF6EE3A492 /* EncodingQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDA1640DCADCA0503E67C02 /* EncodingQueueTests.swift */; };
 		357C61206F5FB68471B765B7 /* AudioSourceCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46FBA26666B8EC304834833 /* AudioSourceCatalogTests.swift */; };
 		3942763C4FDDC39FE9BCFC95 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D19C55C448411836ED80F96 /* ContentView.swift */; };
@@ -42,6 +43,7 @@
 		777E6EF1F7AE166B6A82F929 /* MeterRingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E46CE6B2283FDB27E0B1FF /* MeterRingBuffer.swift */; };
 		79F253369E5B90D5123AC145 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443FD72967A31686798897C9 /* AppSettingsTests.swift */; };
 		7F0AC032F3A0623E49A3C09A /* OutputSettingsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D8A1B20144D72927CE0B04 /* OutputSettingsViewTests.swift */; };
+		7FB08C75869505AF92884653 /* UserGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEB978524BA0185621DB3ED /* UserGuide.swift */; };
 		82316C4FA146E11D0D2525E1 /* FormatNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555B02CBC2B3A7372E3F43CB /* FormatNormalizer.swift */; };
 		880D7844F8F03ED7A6354805 /* MixLevelMeterViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D221097502DBD2CF0F8124 /* MixLevelMeterViewTests.swift */; };
 		890B42385472EF2213A89408 /* LameEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92358CE698DC488250E59867 /* LameEncoderTests.swift */; };
@@ -102,8 +104,10 @@
 		3ACADB04B247712730C4329E /* LameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameEncoder.swift; sourceTree = "<group>"; };
 		3BDFC21FA43B2FD7E28C781F /* MixLevelMeterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixLevelMeterView.swift; sourceTree = "<group>"; };
 		3D8A59026B92C20FE716202C /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		3DEB978524BA0185621DB3ED /* UserGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserGuide.swift; sourceTree = "<group>"; };
 		3DEEED0D8D6B72A2D8C97231 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		443FD72967A31686798897C9 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		49111B38F7A427268A82BF71 /* UserGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserGuideTests.swift; sourceTree = "<group>"; };
 		4C355A717BC72752AC097FB7 /* MixerPanelViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPanelViewTests.swift; sourceTree = "<group>"; };
 		4CD2087320669C581253B6E9 /* LameVersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LameVersionTest.swift; sourceTree = "<group>"; };
 		4D1AD52CFB195EAC64840846 /* EncodingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingQueue.swift; sourceTree = "<group>"; };
@@ -248,6 +252,14 @@
 			path = Encoding;
 			sourceTree = "<group>";
 		};
+		6FCE90D7A59270871B4754AC /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3DEB978524BA0185621DB3ED /* UserGuide.swift */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		733344BC8CA314F505BB1C41 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -290,6 +302,7 @@
 				58715C4529C9A1EFCFE540B9 /* SystemAudioRecorderApp.swift */,
 				CAEA5BDCA806DD3F1058ACDF /* Errors */,
 				C4F20D936340EA07307F362D /* MenuBar */,
+				6FCE90D7A59270871B4754AC /* Resources */,
 				733344BC8CA314F505BB1C41 /* Settings */,
 				AF9294D76B341A43B669FF48 /* Views */,
 			);
@@ -385,6 +398,7 @@
 				A3BA99DC7564A80046CFE5AB /* SaveToastTests.swift */,
 				D718F3330F856A7A222B942D /* SignalLevelAggregatorTests.swift */,
 				9B303DEF5005FC24A3DC37BC /* SourcePickerViewTests.swift */,
+				49111B38F7A427268A82BF71 /* UserGuideTests.swift */,
 				1B619F9F3241C07A35767069 /* WAVWriterRecoveryTests.swift */,
 				39A9CE9C2D786F3C0EF793FF /* WAVWriterTests.swift */,
 				61187DE330BEDC744192E207 /* Fixtures */,
@@ -538,6 +552,7 @@
 				927A320E261165DC058FE630 /* SaveToastTests.swift in Sources */,
 				CA1DE521A0D837DE1404FBD4 /* SignalLevelAggregatorTests.swift in Sources */,
 				397C2D3E5ED597D38F3366FB /* SourcePickerViewTests.swift in Sources */,
+				326F4F6B9428472EDEE2B04D /* UserGuideTests.swift in Sources */,
 				E196882A23D8CCB910F7637A /* WAVWriterRecoveryTests.swift in Sources */,
 				6F4D177B72662411E1E25DDA /* WAVWriterTests.swift in Sources */,
 			);
@@ -577,6 +592,7 @@
 				BE4F7C2C11F1DB4E09FD9155 /* SignalLevelAggregator.swift in Sources */,
 				6A09C41AEDF8BABE6B37CC9C /* SourcePickerView.swift in Sources */,
 				54D88DE594AF97DCB829E9A8 /* SystemAudioRecorderApp.swift in Sources */,
+				7FB08C75869505AF92884653 /* UserGuide.swift in Sources */,
 				25D55ADDC63B39F79351F5E6 /* WAVWriter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -682,7 +698,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tomkaczocha.SystemAudioRecorder;
-				PRODUCT_NAME = SystemAudioRecorder;
+				PRODUCT_NAME = "System Audio Recorder";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -776,7 +792,7 @@
 				);
 				OTHER_CODE_SIGN_FLAGS = "--timestamp --options runtime";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tomkaczocha.SystemAudioRecorder;
-				PRODUCT_NAME = SystemAudioRecorder;
+				PRODUCT_NAME = "System Audio Recorder";
 				SDKROOT = macosx;
 			};
 			name = Release;
