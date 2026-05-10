@@ -126,9 +126,12 @@ rm -f "$DMG_PATH"
 
 create-dmg \
   --volname "SystemAudioRecorder ${VERSION}" \
-  --window-size 500 300 \
-  --icon-size 100 \
-  --app-drop-link 380 100 \
+  --window-size 600 400 \
+  --icon-size 128 \
+  --icon "System Audio Recorder.app" 160 200 \
+  --app-drop-link 440 200 \
+  --hide-extension "System Audio Recorder.app" \
+  --text-size 13 \
   "$DMG_PATH" \
   "$STAGING_DIR"
 
