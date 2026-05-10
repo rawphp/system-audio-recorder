@@ -40,6 +40,7 @@ Connector observation from ideate: REQ-006 (`AudioSourceCatalog`), REQ-007 (`Pro
 - [ ] Unit test in `Tests/AudioEngineTests/AudioSourceCatalogTests.swift` covers the Chromium-helper case: mock provider returns one object id whose HAL bundle ID is `com.google.Chrome.helper.Renderer` but for whose pid `NSRunningApplication(processIdentifier:)` would return nil; the test verifies the process appears in `catalog.processes` with the correct bundle ID and a sensible display name.
 - [ ] Existing `AudioSourceCatalogTests` continue to pass without modification (filter for missing bundle ID still works — just sourced from HAL now).
 - [ ] After the fix, recording for ~10 seconds in `Everything` mode while Chrome plays a known audio source produces an MP3 whose audible content matches the source (not silence).
+- [ ] `docs/manual-tests.md` gains a new test case (next available `MT-NNN` number) titled "Real Core Audio Tap — Chromium Browser in Everything mode" that explicitly reproduces the UR-004 path: Chromium browser playing audible audio, source picker on `Everything`, recording for ~30 s, output MP3 contains the audible browser audio. Pass criteria reference `AudioSourceCatalog` including helper PIDs.
 
 ## Verification Steps
 
