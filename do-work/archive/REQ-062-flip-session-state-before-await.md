@@ -1,7 +1,7 @@
 # REQ-062: Flip sessionState synchronously before async session transitions
 
 **UR:** UR-011
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** supporting
 
@@ -19,13 +19,13 @@ The corresponding session-actor methods are already safe for early state flippin
 
 ## Acceptance Criteria
 
-- [ ] `AppStore.stopRecording()` sets `sessionState = .stopped` and `currentSession = nil` **before** `await session.stop()`; the existing `.idle` flip after the await is removed (`.stopped` collapses to idle controls via `RecordControlsViewModel.update`).
-- [ ] `AppStore.pauseRecording()` sets `sessionState = .paused` **before** `await session.pause()`.
-- [ ] `AppStore.resumeRecording()` sets `sessionState = .recording` **before** `await session.resume()`.
-- [ ] If the underlying `session.pause()` or `session.resume()` call throws, the state is rolled back to the prior `sessionState` and the error is surfaced via `errorSurface` (mirrors the existing `startRecording()` rollback pattern at lines 346-351).
-- [ ] A new test in `Tests/AudioEngineTests/AppStoreTests.swift` proves that immediately after a `stopRecording()` call begins (before it returns), `appStore.sessionState != .recording`. Use a stub `RecordingSession` whose `stop()` blocks on a continuation so the test can observe the synchronous state flip.
-- [ ] Equivalent synchronous-flip tests cover `pauseRecording()` and `resumeRecording()`.
-- [ ] Existing `AppStoreTests` continue to pass without modification (no behavioural regression in the start path, error-routing path, or encoding handoff path).
+- [x] `AppStore.stopRecording()` sets `sessionState = .stopped` and `currentSession = nil` **before** `await session.stop()`; the existing `.idle` flip after the await is removed (`.stopped` collapses to idle controls via `RecordControlsViewModel.update`).
+- [x] `AppStore.pauseRecording()` sets `sessionState = .paused` **before** `await session.pause()`.
+- [x] `AppStore.resumeRecording()` sets `sessionState = .recording` **before** `await session.resume()`.
+- [x] If the underlying `session.pause()` or `session.resume()` call throws, the state is rolled back to the prior `sessionState` and the error is surfaced via `errorSurface` (mirrors the existing `startRecording()` rollback pattern at lines 346-351).
+- [x] A new test in `Tests/AudioEngineTests/AppStoreTests.swift` proves that immediately after a `stopRecording()` call begins (before it returns), `appStore.sessionState != .recording`. Use a stub `RecordingSession` whose `stop()` blocks on a continuation so the test can observe the synchronous state flip.
+- [x] Equivalent synchronous-flip tests cover `pauseRecording()` and `resumeRecording()`.
+- [x] Existing `AppStoreTests` continue to pass without modification (no behavioural regression in the start path, error-routing path, or encoding handoff path).
 
 ## Verification Steps
 
@@ -45,3 +45,8 @@ The corresponding session-actor methods are already safe for early state flippin
 ## Assets
 
 (none)
+
+## Outputs
+
+- App/AppStore.swift — fixed stopRecording/pauseRecording/resumeRecording to flip sessionState before await; added rollback on pause/resume failure
+- Tests/AudioEngineTests/AppStoreTests.swift — added BlockingFakeEmitter, BlockingStubSessionConfigBuilder, makeBlockingAppStore helper, and 3 synchronous-flip tests

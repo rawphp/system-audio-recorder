@@ -48,6 +48,51 @@ private final class FakeStoreEmitter: RecordingSourceEmitter, @unchecked Sendabl
     func stop() { cont.finish() }
 }
 
+/// Emitter whose stream blocks until `release()` is called.
+/// Used by synchronous-flip tests to hold `RecordingSession.stop/pause/resume`
+/// inside the await while the test observes the pre-await state change.
+private final class BlockingFakeEmitter: RecordingSourceEmitter, @unchecked Sendable {
+    let id: String
+    let stream: AsyncStream<AVAudioPCMBuffer>
+    private let cont: AsyncStream<AVAudioPCMBuffer>.Continuation
+
+    init(id: String) {
+        self.id = id
+        var c: AsyncStream<AVAudioPCMBuffer>.Continuation!
+        self.stream = AsyncStream { c = $0 }
+        self.cont = c
+    }
+
+    /// Called by RecordingSession.stop() — does NOT finish the stream, keeping
+    /// the session's normalization task alive so stop() stays in the await.
+    func stop() { /* intentionally no-op — stream stays open */ }
+
+    /// Finish the stream so the RecordingSession can drain and stop() can return.
+    func release() { cont.finish() }
+}
+
+/// SessionConfigBuilder that vends a `BlockingFakeEmitter` and exposes it
+/// so the test can call `release()` to unblock the session.
+private final class BlockingStubSessionConfigBuilder: SessionConfigBuilder, @unchecked Sendable {
+    let outputFolder: URL
+    private(set) var lastEmitter: BlockingFakeEmitter?
+
+    init(outputFolder: URL) {
+        self.outputFolder = outputFolder
+    }
+
+    func build(preset: SourcePreset, settings: AppSettings) throws -> SessionConfig {
+        let emitter = BlockingFakeEmitter(id: "blocking-stub")
+        lastEmitter = emitter
+        return SessionConfig(
+            sources: [SessionConfig.Source(id: "blocking-stub", emitter: emitter)],
+            outputMode: .mixed,
+            outputFolder: outputFolder,
+            timestamp: "20260510-120000"
+        )
+    }
+}
+
 // MARK: - Helpers
 
 @MainActor
@@ -71,6 +116,29 @@ private func makeAppStore(tempDir: URL) -> (AppStore, StubSessionConfigBuilder, 
         sessionConfigBuilder: builder
     )
     return (store, builder, settings)
+}
+
+@MainActor
+private func makeBlockingAppStore(tempDir: URL) -> (AppStore, BlockingStubSessionConfigBuilder) {
+    let suiteName = "com.tomkaczocha.AppStoreTests.Blocking.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    let settings = AppSettings(
+        defaults: defaults,
+        bookmarkProvider: PassthroughBookmarkProvider(),
+        folderCreator: FileManagerFolderCreator()
+    )
+    let builder = BlockingStubSessionConfigBuilder(outputFolder: tempDir)
+    let store = AppStore(
+        settings: settings,
+        sourceCatalog: AudioSourceCatalog(provider: EmptyAppStoreProcessListProvider()),
+        permissionManager: PermissionManager(
+            micProvider: StubMicAuthForAppStore(status: .authorized, requestResult: true)
+        ),
+        encodingQueue: EncodingQueue(),
+        meters: MeterPublisher(),
+        sessionConfigBuilder: builder
+    )
+    return (store, builder)
 }
 
 /// Variant that wires a deterministic audio-tap status into `PermissionManager`
@@ -371,6 +439,124 @@ final class AppStoreTests: XCTestCase {
 
         XCTAssertGreaterThan(builder.buildCount, 0,
                              "Builder must be called when tap is available")
+    }
+
+    // MARK: - REQ-062: Synchronous state flip before await
+
+    /// `stopRecording()` must flip `sessionState` to `.stopped` (and nil
+    /// `currentSession`) BEFORE `await session.stop()` returns.
+    /// The test uses a `BlockingFakeEmitter` whose stream stays open so the
+    /// session's normalization drain never completes — keeping `stop()` in the
+    /// await while the test checks the synchronous state flip.
+    func testStopRecordingFlipsStateBeforeAwaitReturns() async throws {
+        let (store, builder) = makeBlockingAppStore(tempDir: tempDir)
+
+        // Start recording so state == .recording.
+        await store.startRecording(preset: .micOnly)
+        try await waitForState(store, expected: .recording)
+
+        // Grab the emitter BEFORE we stop (builder creates it on build()).
+        let emitter = try XCTUnwrap(builder.lastEmitter)
+
+        // Kick off stopRecording() in a background task so we can observe mid-flight.
+        let stopTask = Task { await store.stopRecording() }
+
+        // Poll until sessionState changes away from .recording, or we time out.
+        // The flip must happen before stop() returns (i.e. before emitter.release()).
+        let deadline = Date().addingTimeInterval(2.0)
+        var flippedBeforeRelease = false
+        while Date() < deadline {
+            let state = await MainActor.run { store.sessionState }
+            if state != .recording {
+                flippedBeforeRelease = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 5_000_000) // 5 ms
+        }
+
+        // Now release the emitter so session.stop() can drain and the task finishes.
+        emitter.release()
+        await stopTask.value
+
+        XCTAssertTrue(flippedBeforeRelease,
+                      "sessionState must flip away from .recording before session.stop() returns")
+        XCTAssertEqual(store.sessionState, .idle,
+                       "sessionState must be .idle after stopRecording() completes")
+        XCTAssertNil(store.currentSession,
+                     "currentSession must be nil after stopRecording() completes")
+    }
+
+    /// `pauseRecording()` must flip `sessionState` to `.paused` BEFORE
+    /// `await session.pause()` returns.
+    func testPauseRecordingFlipsStateBeforeAwaitReturns() async throws {
+        let (store, _) = makeBlockingAppStore(tempDir: tempDir)
+
+        await store.startRecording(preset: .micOnly)
+        try await waitForState(store, expected: .recording)
+
+        // Capture state synchronously right after calling pause — it must
+        // already be .paused by the time we next read it from the main actor.
+        let pauseTask = Task {
+            try await store.pauseRecording()
+        }
+
+        // Spin until state flips or deadline.
+        let deadline = Date().addingTimeInterval(2.0)
+        var flippedBeforeReturn = false
+        while Date() < deadline {
+            let state = await MainActor.run { store.sessionState }
+            if state == .paused {
+                flippedBeforeReturn = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 5_000_000)
+        }
+
+        try await pauseTask.value
+
+        XCTAssertTrue(flippedBeforeReturn,
+                      "sessionState must flip to .paused before session.pause() returns")
+        XCTAssertEqual(store.sessionState, .paused)
+    }
+
+    /// `resumeRecording()` must flip `sessionState` to `.recording` BEFORE
+    /// `await session.resume()` returns.
+    func testResumeRecordingFlipsStateBeforeAwaitReturns() async throws {
+        let (store, builder) = makeBlockingAppStore(tempDir: tempDir)
+
+        await store.startRecording(preset: .micOnly)
+        try await waitForState(store, expected: .recording)
+
+        // Pause first so we can resume.
+        try await store.pauseRecording()
+        try await waitForState(store, expected: .paused)
+
+        let resumeTask = Task {
+            try await store.resumeRecording()
+        }
+
+        // Spin until state flips back to .recording or deadline.
+        let deadline = Date().addingTimeInterval(2.0)
+        var flippedBeforeReturn = false
+        while Date() < deadline {
+            let state = await MainActor.run { store.sessionState }
+            if state == .recording {
+                flippedBeforeReturn = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 5_000_000)
+        }
+
+        try await resumeTask.value
+
+        XCTAssertTrue(flippedBeforeReturn,
+                      "sessionState must flip to .recording before session.resume() returns")
+        XCTAssertEqual(store.sessionState, .recording)
+
+        // Clean up: release the blocking emitter and stop.
+        let emitter = try XCTUnwrap(builder.lastEmitter)
+        emitter.release()
+        await store.stopRecording()
     }
 }
 

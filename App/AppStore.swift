@@ -382,27 +382,72 @@ public final class AppStore {
     }
 
     /// Pause the current session. No-op if not recording.
+    ///
+    /// State is updated synchronously BEFORE awaiting `session.pause()` so
+    /// SwiftUI bindings flip immediately on user action (matches the class
+    /// docstring pattern and startRecording's ordering). If `session.pause()`
+    /// throws, the prior state is restored and the error is surfaced via
+    /// `errorSurface`.
     public func pauseRecording() async throws {
         guard sessionState == .recording, let session = currentSession else { return }
-        try await session.pause()
+        // Flip state before the await so SwiftUI reacts immediately.
         sessionState = .paused
+        do {
+            try await session.pause()
+        } catch {
+            // Roll back to recording on failure.
+            sessionState = .recording
+            await errorSurface.report(error, severity: .nonFatal)
+            throw error
+        }
     }
 
     /// Resume a paused session. No-op if not paused.
+    ///
+    /// State is updated synchronously BEFORE awaiting `session.resume()` so
+    /// SwiftUI bindings flip immediately on user action. If `session.resume()`
+    /// throws, the prior state is restored and the error is surfaced via
+    /// `errorSurface`.
     public func resumeRecording() async throws {
         guard sessionState == .paused, let session = currentSession else { return }
-        try await session.resume()
+        // Flip state before the await so SwiftUI reacts immediately.
         sessionState = .recording
+        do {
+            try await session.resume()
+        } catch {
+            // Roll back to paused on failure.
+            sessionState = .paused
+            await errorSurface.report(error, severity: .nonFatal)
+            throw error
+        }
     }
 
     /// Stop the current session and enqueue MP3 encoding for each WAV produced.
+    ///
+    /// State is updated synchronously BEFORE awaiting `session.stop()` so
+    /// SwiftUI bindings flip immediately on user action (matches the class
+    /// docstring pattern and startRecording's ordering). The session drains
+    /// in the background; encoding is enqueued once draining completes.
     public func stopRecording() async {
         guard let session = currentSession,
               sessionState == .recording || sessionState == .paused || sessionState == .failed
         else {
             return
         }
+
+        // Flip state and nil the session BEFORE the long await so the UI
+        // collapses to the idle layout immediately on the first click. (REQ-062)
+        currentSession = nil
+        sessionState = .stopped
+
+        // REQ-061: Drop the mix meter ring synchronously so the UI level meter
+        // stops immediately when the user clicks Stop.
+        tearDownMixMeter()
+
         let urls = await session.stop()
+
+        // Transition to .idle now that the session has fully drained.
+        sessionState = .idle
 
         // Hand off to the encoding queue.
         let bitrate = settings.bitrate
@@ -418,12 +463,6 @@ public final class AppStore {
             )
             await encodingQueue.enqueue(job: job, keepWAV: keep)
         }
-
-        currentSession = nil
-        sessionState = .idle
-
-        // REQ-061: Drop the mix meter ring and stop the publisher's drain timer.
-        tearDownMixMeter()
     }
 }
 
