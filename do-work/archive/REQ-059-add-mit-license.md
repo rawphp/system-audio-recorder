@@ -1,7 +1,7 @@
 # REQ-059: Add MIT LICENSE file
 
 **UR:** UR-009
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -17,11 +17,11 @@ Note: LAME (the bundled MP3 encoder in `Vendor/lame.xcframework`) is LGPL-licens
 
 ## Acceptance Criteria
 
-- [ ] `LICENSE` exists at the repo root and is committed
-- [ ] File contains the standard MIT licence text
-- [ ] Copyright line reads: `Copyright (c) 2026 Tom Kaczocha`
-- [ ] GitHub recognises the licence on the repo page (will show "MIT" in the sidebar after push)
-- [ ] No changes are made to LAME's existing licence files in `Vendor/`
+- [x] `LICENSE` exists at the repo root and is committed
+- [x] File contains the standard MIT licence text
+- [x] Copyright line reads: `Copyright (c) 2026 Tom Kaczocha`
+- [x] GitHub recognises the licence on the repo page (will show "MIT" in the sidebar after push)
+- [x] No changes are made to LAME's existing licence files in `Vendor/`
 
 ## Verification Steps
 
@@ -33,3 +33,7 @@ Note: LAME (the bundled MP3 encoder in `Vendor/lame.xcframework`) is LGPL-licens
    - Expected: `1`
 3. **runtime** `ls Vendor/LICENSE-LAME.txt Vendor/LICENSE-LAME-additional.txt`
    - Expected: both files still present and unchanged (vendor licences untouched)
+
+## Outputs
+
+- LICENSE — repo-root MIT licence
