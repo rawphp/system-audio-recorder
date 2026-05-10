@@ -346,4 +346,94 @@ final class SourcePickerViewModelTests: XCTestCase {
         XCTAssertGreaterThan(proberCallCount, countAfterFirst,
             "Second onMenuOpen() must also trigger a re-probe (not just the first)")
     }
+
+    // -----------------------------------------------------------------------
+    // REQ-050: showTapDeniedAffordance — three-state seam (denied / available / unknown)
+    // -----------------------------------------------------------------------
+
+    /// AC #1 (denied): When overrideAudioTapStatus is .deniedByEntitlement,
+    /// showTapDeniedAffordance returns true for tap-needing items.
+    func testShowTapDeniedAffordanceWhenDeniedByEntitlement() {
+        let settings = makeSettings()
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        vm.overrideAudioTapStatus = .deniedByEntitlement
+
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .everything),
+            "everything should show tap-denied affordance when status is .deniedByEntitlement")
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .everythingPlusMic),
+            "everythingPlusMic should show tap-denied affordance when status is .deniedByEntitlement")
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .specificApp),
+            "specificApp should show tap-denied affordance when status is .deniedByEntitlement")
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .micOnly),
+            "micOnly must NOT show tap-denied affordance (it does not need the tap)")
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .advanced),
+            "advanced must NOT show tap-denied affordance (it does not need the tap)")
+    }
+
+    /// AC #1 (denied): When overrideAudioTapStatus is .deniedByPolicy,
+    /// showTapDeniedAffordance returns true for tap-needing items.
+    func testShowTapDeniedAffordanceWhenDeniedByPolicy() {
+        let settings = makeSettings()
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        vm.overrideAudioTapStatus = .deniedByPolicy
+
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .everything))
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .everythingPlusMic))
+        XCTAssertTrue(vm.showTapDeniedAffordance(for: .specificApp))
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .micOnly))
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .advanced))
+    }
+
+    /// AC #2 (available): When overrideAudioTapStatus is .available,
+    /// showTapDeniedAffordance returns false for all items.
+    func testShowTapDeniedAffordanceFalseWhenAvailable() {
+        let settings = makeSettings()
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        vm.overrideAudioTapStatus = .available
+
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .everything))
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .everythingPlusMic))
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .specificApp))
+    }
+
+    /// AC #3 (unknown / transient): When overrideAudioTapStatus is .unknown,
+    /// showTapDeniedAffordance must return false — items render disabled (not affordance).
+    func testShowTapDeniedAffordanceFalseWhenUnknown() {
+        let settings = makeSettings()
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        vm.overrideAudioTapStatus = .unknown
+
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .everything),
+            ".unknown must NOT show the affordance — items should render as disabled instead")
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .everythingPlusMic))
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .specificApp))
+    }
+
+    /// Regression guard: existing Boolean override seam (overrideAudioTapAvailable)
+    /// still works correctly when overrideAudioTapStatus is nil.
+    func testExistingBooleanSeamUnaffectedByNewSeam() {
+        let settings = makeSettings()
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        // Both seams nil — falls back to real permissionManager.audioTapStatus (.unknown initially)
+        vm.overrideAudioTapAvailable = false
+        // overrideAudioTapStatus is nil — must not interfere with the bool seam
+
+        // When the bool seam says false, tap items are disabled
+        XCTAssertTrue(vm.isDisabled(.everything))
+        XCTAssertTrue(vm.isDisabled(.specificApp))
+
+        // And the tap-denied affordance must NOT appear (bool seam doesn't carry denial signal)
+        XCTAssertFalse(vm.showTapDeniedAffordance(for: .everything),
+            "overrideAudioTapAvailable=false alone must not trigger the denied affordance")
+    }
 }

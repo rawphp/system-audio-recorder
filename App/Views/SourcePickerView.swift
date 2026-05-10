@@ -27,9 +27,10 @@ public enum PickerItem: String, CaseIterable, Equatable, Sendable {
         self == .everythingPlusMic || self == .micOnly
     }
 
-    /// Returns true if this item needs the audio tap (everything except mic-only).
+    /// Returns true if this item needs the audio tap.
+    /// `.micOnly` and `.advanced` do not require the audio tap.
     var needsAudioTap: Bool {
-        self != .micOnly
+        self != .micOnly && self != .advanced
     }
 }
 
@@ -63,11 +64,16 @@ public final class SourcePickerViewModel {
 
     public let availableItems: [PickerItem] = PickerItem.allCases
 
-    // MARK: - Test seam
+    // MARK: - Test seams
 
     /// When non-nil, overrides `permissionManager.audioTapStatus` for disabled-state
     /// computation. Set this in tests to avoid the real Core Audio probe.
     public var overrideAudioTapAvailable: Bool? = nil
+
+    /// When non-nil, overrides `permissionManager.audioTapStatus` with the full
+    /// `AudioTapStatus` value for three-state affordance testing (denied / available /
+    /// unknown). Takes precedence over `overrideAudioTapAvailable` when non-nil.
+    public var overrideAudioTapStatus: AudioTapStatus? = nil
 
     // MARK: - Dependencies
 
@@ -125,7 +131,9 @@ public final class SourcePickerViewModel {
             || permissionManager.microphoneStatus == .restricted
 
         let tapAvailable: Bool
-        if let override = overrideAudioTapAvailable {
+        if let statusOverride = overrideAudioTapStatus {
+            tapAvailable = statusOverride == .available
+        } else if let override = overrideAudioTapAvailable {
             tapAvailable = override
         } else {
             tapAvailable = permissionManager.audioTapStatus == .available
@@ -150,6 +158,34 @@ public final class SourcePickerViewModel {
             || permissionManager.microphoneStatus == .restricted
     }
 
+    // MARK: - Tap-denied affordance (REQ-050)
+
+    /// Returns the resolved `AudioTapStatus` — from the override seams or the live manager.
+    private var resolvedAudioTapStatus: AudioTapStatus {
+        if let statusOverride = overrideAudioTapStatus {
+            return statusOverride
+        }
+        // If only the legacy Bool seam is set, map it but cannot determine denial.
+        // The Bool seam does not carry denial signal; tap-denied affordance never
+        // fires from the Bool seam alone (returns .available or .unknown).
+        if let boolOverride = overrideAudioTapAvailable {
+            return boolOverride ? .available : .unknown
+        }
+        return permissionManager.audioTapStatus
+    }
+
+    /// Returns true when the inline "Tap unavailable — Open Settings" affordance
+    /// should be shown for the given item.
+    ///
+    /// The affordance only appears for confirmed denials (`.deniedByEntitlement` or
+    /// `.deniedByPolicy`). When status is `.unknown` (transient startup window), items
+    /// render as disabled rather than showing the affordance, to avoid false positives.
+    public func showTapDeniedAffordance(for item: PickerItem) -> Bool {
+        guard item.needsAudioTap else { return false }
+        let status = resolvedAudioTapStatus
+        return status == .deniedByEntitlement || status == .deniedByPolicy
+    }
+
     // MARK: - Menu open hook (REQ-049)
 
     /// Called by `SourcePickerView` immediately before the source-picker menu
@@ -167,6 +203,14 @@ public final class SourcePickerViewModel {
 
     public func openMicrophoneSettings() {
         NSWorkspace.shared.open(PermissionDeepLink.microphoneSettingsURL)
+    }
+
+    // MARK: - Open System Settings for screen recording / audio tap (REQ-050)
+
+    /// Opens System Settings → Privacy & Security → Screen Recording.
+    /// Called by the tap-denied affordance buttons.
+    public func openScreenRecordingSettings() {
+        NSWorkspace.shared.open(PermissionDeepLink.screenRecordingSettingsURL)
     }
 
     // MARK: - Display label for current selection
@@ -313,19 +357,27 @@ public struct SourcePickerView: View {
     private var everythingButton: some View {
         let item = PickerItem.everything
         let disabled = viewModel.isDisabled(item)
-        Button {
-            viewModel.select(item)
-        } label: {
-            menuItemLabel(item)
+        if viewModel.showTapDeniedAffordance(for: item) {
+            // Show the inline "tap denied" affordance instead of the normal item
+            tapDeniedAffordanceButton(label: item.label)
+        } else {
+            Button {
+                viewModel.select(item)
+            } label: {
+                menuItemLabel(item)
+            }
+            .disabled(disabled)
         }
-        .disabled(disabled)
     }
 
     @ViewBuilder
     private var everythingPlusMicButton: some View {
         let item = PickerItem.everythingPlusMic
         let disabled = viewModel.isDisabled(item)
-        if viewModel.showMicDeniedAffordance(for: item) {
+        if viewModel.showTapDeniedAffordance(for: item) {
+            // Tap denial takes precedence: show "tap denied" affordance
+            tapDeniedAffordanceButton(label: item.label)
+        } else if viewModel.showMicDeniedAffordance(for: item) {
             // Show the inline "mic denied" affordance instead of the normal item
             micDeniedAffordanceButton(label: item.label)
         } else {
@@ -358,12 +410,17 @@ public struct SourcePickerView: View {
     private var specificAppButton: some View {
         let item = PickerItem.specificApp
         let disabled = viewModel.isDisabled(item)
-        Button {
-            viewModel.openAppPicker()
-        } label: {
-            Text(item.label)
+        if viewModel.showTapDeniedAffordance(for: item) {
+            // Show the inline "tap denied" affordance instead of the normal item
+            tapDeniedAffordanceButton(label: item.label)
+        } else {
+            Button {
+                viewModel.openAppPicker()
+            } label: {
+                Text(item.label)
+            }
+            .disabled(disabled)
         }
-        .disabled(disabled)
     }
 
     @ViewBuilder
@@ -396,6 +453,19 @@ public struct SourcePickerView: View {
             viewModel.openMicrophoneSettings()
         } label: {
             Label("\(label) — Mic access denied — Open Settings", systemImage: "exclamationmark.triangle")
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    /// Renders the "Tap unavailable — Open Settings" affordance for tap-needing items
+    /// when audio tap access is confirmed denied (not just transiently unknown).
+    /// Clicking opens System Settings → Privacy & Security → Screen Recording.
+    @ViewBuilder
+    private func tapDeniedAffordanceButton(label: String) -> some View {
+        Button {
+            viewModel.openScreenRecordingSettings()
+        } label: {
+            Label("\(label) — Tap unavailable — Open Settings", systemImage: "exclamationmark.triangle")
         }
         .foregroundStyle(.secondary)
     }
