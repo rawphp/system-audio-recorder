@@ -1,7 +1,7 @@
 # REQ-058: Add .gitignore and untrack files that shouldn't be in repo
 
 **UR:** UR-009
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -19,13 +19,13 @@ This is the first step of UR-009 (open-source release prep). Today there is no `
 
 ## Acceptance Criteria
 
-- [ ] `.gitignore` exists at the repo root and is committed
-- [ ] `.gitignore` covers: `.DS_Store`, `xcuserdata/`, `*.xcuserstate`, `build/`, `DerivedData/`, `SystemAudioRecorder.xcodeproj/`, `.swiftpm/`, `.build/`, `dist/`, `*.dmg`, `*.app` (in repo root, not anywhere), `*.zip`, signing artefacts (`*.p12`, `*.cer`, `*.mobileprovision`, `ExportOptions.plist`), `.env`, `.env.*`, `.claude/`
-- [ ] `do-work/` is **not** in `.gitignore` (must remain tracked for the workflow)
-- [ ] `git ls-files | grep xcuserstate` returns nothing after the commit
-- [ ] `git ls-files SystemAudioRecorder.xcodeproj/` returns nothing after the commit
-- [ ] `make build` still works after the commit (xcodegen regenerates the project from `project.yml`)
-- [ ] `git status` is clean after `make build` (the regenerated project is correctly ignored)
+- [x] `.gitignore` exists at the repo root and is committed
+- [x] `.gitignore` covers: `.DS_Store`, `xcuserdata/`, `*.xcuserstate`, `build/`, `DerivedData/`, `SystemAudioRecorder.xcodeproj/`, `.swiftpm/`, `.build/`, `dist/`, `*.dmg`, `*.app` (in repo root, not anywhere), `*.zip`, signing artefacts (`*.p12`, `*.cer`, `*.mobileprovision`, `ExportOptions.plist`), `.env`, `.env.*`, `.claude/`
+- [x] `do-work/` is **not** in `.gitignore` (must remain tracked for the workflow)
+- [x] `git ls-files | grep xcuserstate` returns nothing after the commit
+- [x] `git ls-files SystemAudioRecorder.xcodeproj/` returns nothing after the commit
+- [x] `make build` still works after the commit (xcodegen regenerates the project from `project.yml`)
+- [x] `git status` is clean after `make build` (the regenerated project is correctly ignored)
 
 ## Verification Steps
 
@@ -39,3 +39,7 @@ This is the first step of UR-009 (open-source release prep). Today there is no `
    - Expected: empty output (regenerated `.xcodeproj/`, `build/`, `.swiftpm/` etc. are all ignored)
 4. **runtime** `git ls-files do-work/ | head -1`
    - Expected: at least one line (do-work/ remains tracked)
+
+## Outputs
+
+- `.gitignore` — repo .gitignore covering Xcode/build/signing/tooling; `do-work/` excluded (remains tracked)

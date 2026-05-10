@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# Xcode user state
+**/xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# Xcode build output
+build/
+DerivedData/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration/
+
+# Xcodegen-generated project (project.yml is source of truth)
+SystemAudioRecorder.xcodeproj/
+
+# SwiftPM
+.swiftpm/
+.build/
+Package.resolved
+
+# Release artifacts
+dist/
+*.dmg
+*.app
+*.zip
+
+# Signing — never commit
+*.p12
+*.cer
+*.mobileprovision
+ExportOptions.plist
+.env
+.env.*
+
+# Tooling
+.claude/
