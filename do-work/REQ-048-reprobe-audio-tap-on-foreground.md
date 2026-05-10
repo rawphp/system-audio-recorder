@@ -1,0 +1,50 @@
+# REQ-048: Re-probe audio tap on app foreground
+
+**UR:** UR-005
+**Status:** backlog
+**Created:** 2026-05-10
+**Layer:** supporting
+
+## Task
+
+Add an event-driven re-probe of audio tap status to `PermissionManager` so that granting the Screen Recording entitlement in System Settings while the app is running takes effect without a relaunch.
+
+Two changes:
+
+1. **Public API:** add a `refreshAudioTapStatus()` method (sync wrapper that schedules `requestAudioTap()` on the main actor) that other components can call. This is the seam REQ-049 will consume from the UI.
+2. **Foreground observer:** subscribe to `NSApplication.didBecomeActiveNotification` (or `NotificationCenter.default` equivalent on `@MainActor`) and call `refreshAudioTapStatus()` whenever the notification fires.
+
+The 1 Hz mic poll (`startPolling` at `Permissions/PermissionManager.swift:194`) is **not** the right pattern here — `AudioHardwareCreateProcessTap` is heavyweight per the user's clarification, so re-probe must be event-driven (foreground + menu-open in REQ-049), not on a timer.
+
+## Context
+
+UR-005 clarification: "Event-driven — probe on app foreground, on menu open, and on tap-related setting change. No timer." The "setting change" path is implicitly covered by foreground+menu-open: the user must return focus to our app or open the picker for the granted permission to matter. This REQ owns the foreground half and the public re-probe seam; REQ-049 owns the menu-open half (UI side).
+
+Connector: mirrors the structure of `startPolling()` (1 Hz mic timer) but uses an `NSApplication.didBecomeActiveNotification` observer instead of a timer, per the cost-vs-freshness clarification.
+
+## Acceptance Criteria
+
+- [ ] `PermissionManager` exposes a public method (e.g. `refreshAudioTapStatus()`) that re-runs the audio-tap probe and updates `audioTapStatus`.
+- [ ] When the app receives `NSApplication.didBecomeActiveNotification`, `audioTapStatus` is re-probed within one main-actor hop.
+- [ ] Granting the Screen Recording entitlement in System Settings while the app is in the background, then switching back to the app, results in `audioTapStatus == .available` without an app relaunch.
+- [ ] The observer is removed in `deinit` (no leak, no notifications fired against a deallocated manager).
+- [ ] No regression: existing `PermissionManagerTests` still pass.
+
+## Verification Steps
+
+> Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
+
+1. **test** Run `swift test --filter PermissionManagerTests`. Add a test that injects a stub notification post and asserts the probe was re-invoked.
+   - Expected: green; the new test fails if the observer is removed.
+2. **build** Project builds clean (e.g. `make build`).
+   - Expected: zero warnings, zero errors.
+3. **runtime** Manual: launch the app, open Console.app filtering on the app's bundle id, then `open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"`, toggle the entitlement, return to the app. Add a temporary log line in `requestAudioTap` (or a debug assertion) to confirm it re-fires on foreground.
+   - Expected: log shows the probe re-running each time the app becomes active.
+
+## Integration
+
+**Reachability:** Two callers. (a) `NSApplication.didBecomeActiveNotification` observer registered inside `PermissionManager.init` (`Permissions/PermissionManager.swift:92`), unregistered in `deinit` (line 99). (b) New public method `refreshAudioTapStatus()` exposed from `PermissionManager` for REQ-049's UI trigger to call.
+
+**Data dependencies:** Writes `PermissionManager.audioTapStatus` (`Permissions/PermissionManager.swift:77`). Reads no external state; the probe (`probeAudioTap()` line 166) is self-contained.
+
+**Service dependencies:** `NotificationCenter.default` for the foreground observer; `AudioHardwareCreateProcessTap` (Core Audio) via the existing `probeAudioTap()` helper. No new module dependencies.
