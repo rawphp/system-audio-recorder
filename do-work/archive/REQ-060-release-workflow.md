@@ -1,7 +1,7 @@
 # REQ-060: GitHub Actions release workflow on tag push
 
 **UR:** UR-009
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** none
 
@@ -32,17 +32,17 @@ The workflow should also `actions/setup-xcode` (or pin to a known-working macOS-
 
 ## Acceptance Criteria
 
-- [ ] `.github/workflows/release.yml` exists and is committed
-- [ ] Workflow triggers on `push` to tags matching `v*` (e.g. `v1.0.0`)
-- [ ] Workflow runs on `macos-14` (or newer) runner
-- [ ] Workflow installs `xcodegen` and `create-dmg` via Homebrew
-- [ ] Workflow imports the Developer ID certificate from `DEVELOPER_ID_CERT_P12_BASE64` and `DEVELOPER_ID_CERT_PASSWORD` into a temporary keychain (using `apple-actions/import-codesign-certs@v3` or equivalent)
-- [ ] Workflow stores notarisation credentials via `xcrun notarytool store-credentials NOTARYTOOL_PROFILE` using `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD`
-- [ ] Workflow exports `DEVELOPMENT_TEAM=$APPLE_TEAM_ID` before invoking `scripts/release.sh`
-- [ ] Workflow runs `scripts/release.sh` and fails the job on non-zero exit
-- [ ] Workflow uploads `dist/SystemAudioRecorder-*.dmg` as an asset on a GitHub Release named after the tag (using `softprops/action-gh-release@v2` or equivalent)
-- [ ] Top of the YAML includes a comment block listing all required repository secrets
-- [ ] No certificates, passwords, profiles, or Apple IDs appear in the YAML — every sensitive value is read from `secrets.*`
+- [x] `.github/workflows/release.yml` exists and is committed
+- [x] Workflow triggers on `push` to tags matching `v*` (e.g. `v1.0.0`)
+- [x] Workflow runs on `macos-14` (or newer) runner
+- [x] Workflow installs `xcodegen` and `create-dmg` via Homebrew
+- [x] Workflow imports the Developer ID certificate from `DEVELOPER_ID_CERT_P12_BASE64` and `DEVELOPER_ID_CERT_PASSWORD` into a temporary keychain (using `apple-actions/import-codesign-certs@v3` or equivalent)
+- [x] Workflow stores notarisation credentials via `xcrun notarytool store-credentials NOTARYTOOL_PROFILE` using `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD`
+- [x] Workflow exports `DEVELOPMENT_TEAM=$APPLE_TEAM_ID` before invoking `scripts/release.sh`
+- [x] Workflow runs `scripts/release.sh` and fails the job on non-zero exit
+- [x] Workflow uploads `dist/SystemAudioRecorder-*.dmg` as an asset on a GitHub Release named after the tag (using `softprops/action-gh-release@v2` or equivalent)
+- [x] Top of the YAML includes a comment block listing all required repository secrets
+- [x] No certificates, passwords, profiles, or Apple IDs appear in the YAML — every sensitive value is read from `secrets.*`
 
 ## Verification Steps
 
@@ -60,3 +60,7 @@ The workflow should also `actions/setup-xcode` (or pin to a known-working macOS-
    - Expected: at least one match (workflow invokes the existing release script)
 
 > Note: full end-to-end CI verification (running the workflow on GitHub against a real tag) is out of scope for this REQ. The user runs that manually after the workflow + secrets are in place. Acceptance here is "workflow file is correct and parseable"; the first real `git tag v0.1.0 && git push --tags` will exercise it.
+
+## Outputs
+
+- .github/workflows/release.yml — release workflow triggered on v* tag push

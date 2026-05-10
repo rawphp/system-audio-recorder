@@ -1,0 +1,65 @@
+# GitHub Actions — Release workflow
+#
+# Triggers on a version tag push (e.g. git tag v1.0.0 && git push --tags).
+# Builds, signs, notarises, and packages a DMG via scripts/release.sh, then
+# uploads the DMG as an asset on a GitHub Release.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#
+#   DEVELOPER_ID_CERT_P12_BASE64      base64-encoded Developer ID Application .p12
+#   DEVELOPER_ID_CERT_PASSWORD        export password for the .p12
+#   KEYCHAIN_PASSWORD                 any random string — used to lock the CI keychain
+#   APPLE_ID                          Apple ID email for notarisation
+#   APPLE_TEAM_ID                     10-character Apple team ID (also used as DEVELOPMENT_TEAM)
+#   APPLE_APP_SPECIFIC_PASSWORD       app-specific password for notarisation
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release (macos-14)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: brew install xcodegen create-dmg
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Import Developer ID cert
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Store notarytool credentials
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials NOTARYTOOL_PROFILE \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+      - name: Build, sign, notarise, and package DMG
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash scripts/release.sh
+
+      - name: Upload DMG to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/SystemAudioRecorder-*.dmg
+          generate_release_notes: true
