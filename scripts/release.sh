@@ -152,7 +152,7 @@ NOTARY_STATUS=$(echo "$SUBMIT_OUTPUT" \
 if [[ "$NOTARY_STATUS" != "Accepted" ]]; then
   echo "ERROR: Notarization status: ${NOTARY_STATUS:-unknown}" >&2
   if [[ -n "${SUBMISSION_ID:-}" ]]; then
-    echo "==> Fetching notarization log for submission $SUBMISSION_ID…" >&2
+    echo "==> Fetching notarization log for submission ${SUBMISSION_ID}…" >&2
     xcrun notarytool log "$SUBMISSION_ID" \
       --keychain-profile "$NOTARYTOOL_PROFILE" >&2 || true
   fi
