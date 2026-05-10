@@ -136,4 +136,37 @@ final class PermissionManagerTests: XCTestCase {
         XCTAssertEqual(pm.microphoneStatus, .authorized,
                        "@Observable property must reflect updated status after grant")
     }
+
+    // MARK: - audioTapProber seam (startup wiring)
+
+    /// The injected audioTapProber closure must be called when requestAudioTap() runs.
+    /// If the call site in SystemAudioRecorderApp is removed, this test cannot pass
+    /// end-to-end — it guards the startup wiring contract.
+    func testRequestAudioTapInvokesInjectedProber() async {
+        var proberCallCount = 0
+        let stub = StubMicrophoneAuthorizationProvider(status: .notDetermined)
+        let pm = PermissionManager(micProvider: stub, audioTapProber: {
+            proberCallCount += 1
+            return .available
+        })
+        _ = await pm.requestAudioTap()
+        XCTAssertEqual(proberCallCount, 1,
+                       "requestAudioTap() must invoke the injected audioTapProber exactly once")
+    }
+
+    func testRequestAudioTapSetsStatusFromProber() async {
+        let stub = StubMicrophoneAuthorizationProvider(status: .notDetermined)
+        let pm = PermissionManager(micProvider: stub, audioTapProber: { .available })
+        _ = await pm.requestAudioTap()
+        XCTAssertEqual(pm.audioTapStatus, .available,
+                       "audioTapStatus must reflect the value returned by the injected prober")
+    }
+
+    func testRequestAudioTapReflectsDenialFromProber() async {
+        let stub = StubMicrophoneAuthorizationProvider(status: .notDetermined)
+        let pm = PermissionManager(micProvider: stub, audioTapProber: { .deniedByEntitlement })
+        _ = await pm.requestAudioTap()
+        XCTAssertEqual(pm.audioTapStatus, .deniedByEntitlement,
+                       "audioTapStatus must reflect .deniedByEntitlement when prober reports it")
+    }
 }

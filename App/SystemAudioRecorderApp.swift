@@ -39,6 +39,14 @@ struct SystemAudioRecorderApp: App {
                             dockPolicyController = controller
                             controller.start()
                         }
+
+                        // Probe audio-tap availability once at startup so
+                        // audioTapStatus is populated before the source picker opens.
+                        // requestAudioTap() is async and @MainActor; wrap in a Task
+                        // so the DispatchQueue.main.async block can remain synchronous.
+                        Task { @MainActor in
+                            await appStore.permissionManager.requestAudioTap()
+                        }
                     }
                 }
         }

@@ -79,6 +79,9 @@ public final class PermissionManager {
     // MARK: - Private
 
     private let micProvider: MicrophoneAuthorizationProvider
+    /// Injectable seam for the audio-tap probe. Defaults to the real CoreAudio probe.
+    /// Tests inject a deterministic closure to avoid hardware calls.
+    private let audioTapProber: () -> AudioTapStatus
     // Stored nonisolated so deinit (which is nonisolated) can cancel without
     // crossing the @MainActor isolation boundary.
     private let timerBox: _TimerBox
@@ -88,9 +91,15 @@ public final class PermissionManager {
 
     /// Designated initialiser.
     ///
-    /// - Parameter micProvider: injectable seam; defaults to the system wrapper.
-    public init(micProvider: MicrophoneAuthorizationProvider = SystemMicrophoneAuthorizationProvider()) {
+    /// - Parameters:
+    ///   - micProvider: injectable seam for microphone authorization; defaults to the system wrapper.
+    ///   - audioTapProber: injectable seam for the audio-tap probe; defaults to the real CoreAudio probe.
+    public init(
+        micProvider: MicrophoneAuthorizationProvider = SystemMicrophoneAuthorizationProvider(),
+        audioTapProber: (() -> AudioTapStatus)? = nil
+    ) {
         self.micProvider = micProvider
+        self.audioTapProber = audioTapProber ?? { PermissionManager._defaultAudioTapProbe() }
         self.microphoneStatus = micProvider.status
         self.timerBox = _TimerBox()
         startPolling()
@@ -148,22 +157,26 @@ public final class PermissionManager {
     /// list; interprets the OSStatus to determine availability vs.
     /// entitlement/policy denial.
     ///
+    /// Uses the injected `audioTapProber` closure (defaults to the real CoreAudio
+    /// probe) so tests can verify this method is called without hardware access.
+    ///
     /// - Returns: `true` when the tap capability is available.
     public func requestAudioTap() async -> Bool {
-        let status = probeAudioTap()
+        let status = audioTapProber()
         audioTapStatus = status
         return status == .available
     }
 
     // MARK: - Private helpers
 
-    /// Probe tap creation and interpret the resulting OSStatus into `AudioTapStatus`.
+    /// Production CoreAudio probe. Static so it can be stored as a closure without
+    /// capturing `self` across the `@MainActor` / initializer boundary.
     ///
     /// `AudioHardwareCreateProcessTap` with an empty process list fails quickly.
     /// The error code classification:
     ///   - Positive 4CC object-level errors → HAL accepted the entitlement check → `.available`
     ///   - Negative / entitlement-denied codes → `.deniedByEntitlement` or `.deniedByPolicy`
-    private func probeAudioTap() -> AudioTapStatus {
+    private static func _defaultAudioTapProbe() -> AudioTapStatus {
         let desc = CATapDescription(stereoMixdownOfProcesses: [])
         desc.name = "com.tomkaczocha.SystemAudioRecorder.probe"
         var tapID: AudioObjectID = kAudioObjectUnknown
