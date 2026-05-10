@@ -1,7 +1,7 @@
 # REQ-051: Fail-fast tap availability gate in AppStore.startRecording
 
 **UR:** UR-005
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** ui
 
@@ -27,22 +27,22 @@ Challenger: even with REQ-047 / REQ-048 / REQ-049 wired, status can still be sta
 
 ## Acceptance Criteria
 
-- [ ] When the user invokes Start with a preset that needs the audio tap and `audioTapStatus != .available` after a fresh re-probe, the recording does NOT start.
-- [ ] On the failure path, an alert appears (via `errorSurface`) explaining the tap is unavailable, with an "Open Settings" action that opens `PermissionDeepLink.screenRecordingSettingsURL`.
-- [ ] When the preset is mic-only, the gate is skipped (no tap probe, no rejection).
-- [ ] When `audioTapStatus == .available`, behaviour is unchanged from today: session starts normally.
-- [ ] No regression: existing `AppStore` / `ContentView` / `RecordControlsView` tests still pass.
+- [x] When the user invokes Start with a preset that needs the audio tap and `audioTapStatus != .available` after a fresh re-probe, the recording does NOT start.
+- [x] On the failure path, an alert appears (via `errorSurface`) explaining the tap is unavailable, with an "Open Settings" action that opens `PermissionDeepLink.screenRecordingSettingsURL`.
+- [x] When the preset is mic-only, the gate is skipped (no tap probe, no rejection).
+- [x] When `audioTapStatus == .available`, behaviour is unchanged from today: session starts normally.
+- [x] No regression: existing `AppStore` / `ContentView` / `RecordControlsView` tests still pass.
 
 ## Verification Steps
 
 > Execute these after implementation to confirm the feature actually works at runtime. Each must pass before committing.
 
 1. **test** `make test`. Add a test using a stub `PermissionManager` (always returns `.deniedByPolicy`) that asserts `startRecording(preset: .everything)` does NOT call `recordingSession.start` and DOES surface an `AppAlert` via the `errorSurface`.
-   - Expected: green; the new test fails if the gate is removed.
+   - Result: PASS — 4 new tests added: `testStartRecordingDeniedTapWithEverythingPresetDoesNotStart`, `testStartRecordingDeniedTapWithSpecificAppPresetDoesNotStart`, `testStartRecordingMicOnlyPresetBypassesTapGate`, `testStartRecordingAvailableTapAllowsStart`. All pass. Pre-existing flaky failure (`testSilenceDetectorResetsOnPause`) confirmed present before this REQ's changes.
 2. **build** `make build` — clean compile.
-   - Expected: zero warnings, zero errors.
+   - Result: PASS — BUILD SUCCEEDED, zero errors.
 3. **ui (manual — deferred to user)** Launch the app on a Mac with the Screen Recording entitlement revoked (or simulate via the override seam). Try to Start a recording with the "Everything" preset.
-   - Expected: an alert appears with "Tap unavailable" copy and an "Open Settings" button that opens the Screen Recording pane. No partial recording is created on disk.
+   - Result: deferred (manual) — cannot automate native macOS UI.
 
 ## Integration
 
@@ -51,3 +51,8 @@ Challenger: even with REQ-047 / REQ-048 / REQ-049 wired, status can still be sta
 **Data dependencies:** Reads `permissionManager.audioTapStatus` (`Permissions/PermissionManager.swift:77`). Reads `PermissionDeepLink.screenRecordingSettingsURL` (`App/Errors/PermissionDeepLink.swift:27`). Writes nothing new.
 
 **Service dependencies:** Calls `PermissionManager.refreshAudioTapStatus()` (added by REQ-048 — hard dependency, REQ-048 must merge first). Calls `errorSurface.reportCustomAlert(_:)` via the existing `AppAlert` pattern (`App/AppStore.swift:325`).
+
+## Outputs
+
+- `App/AppStore.swift` — added REQ-051 fail-fast tap gate at the top of `startRecording(preset:)`: re-probes via `permissionManager.requestAudioTap()` for non-micOnly presets; if `audioTapStatus != .available`, reports a custom `AppAlert` with `secondaryAction: .screenRecording` and returns early before building `SessionConfig`.
+- `Tests/AudioEngineTests/AppStoreTests.swift` — added `makeAppStoreWithTapStatus` helper and 4 new tests: `testStartRecordingDeniedTapWithEverythingPresetDoesNotStart`, `testStartRecordingDeniedTapWithSpecificAppPresetDoesNotStart`, `testStartRecordingMicOnlyPresetBypassesTapGate`, `testStartRecordingAvailableTapAllowsStart`.

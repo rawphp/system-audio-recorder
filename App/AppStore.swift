@@ -286,6 +286,24 @@ public final class AppStore {
         guard sessionState == .idle || sessionState == .stopped || sessionState == .failed else {
             return
         }
+
+        // REQ-051: Fail-fast tap availability gate.
+        // Mic-only does not need the audio tap — skip the gate entirely.
+        // For every other preset, re-probe tap status and abort early if unavailable.
+        if preset != .micOnly {
+            await permissionManager.requestAudioTap()
+            if permissionManager.audioTapStatus != .available {
+                errorSurface.reportCustomAlert(AppAlert(
+                    title: "Audio Tap Unavailable",
+                    message: "Screen Recording permission is required to capture system audio. Open System Settings to grant access.",
+                    primaryButton: "OK",
+                    secondaryButton: "Open Settings",
+                    secondaryAction: .screenRecording
+                ))
+                return
+            }
+        }
+
         // Persist preset choice.
         settings.lastSourcePreset = preset.settingsKey
 

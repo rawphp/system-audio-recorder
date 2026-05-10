@@ -73,6 +73,38 @@ private func makeAppStore(tempDir: URL) -> (AppStore, StubSessionConfigBuilder, 
     return (store, builder, settings)
 }
 
+/// Variant that wires a deterministic audio-tap status into `PermissionManager`
+/// so tests can exercise the REQ-051 gate without real CoreAudio hardware.
+@MainActor
+private func makeAppStoreWithTapStatus(
+    tempDir: URL,
+    tapStatus: AudioTapStatus
+) -> (AppStore, StubSessionConfigBuilder, ErrorSurface) {
+    let suiteName = "com.tomkaczocha.AppStoreTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    let settings = AppSettings(
+        defaults: defaults,
+        bookmarkProvider: PassthroughBookmarkProvider(),
+        folderCreator: FileManagerFolderCreator()
+    )
+    let builder = StubSessionConfigBuilder(outputFolder: tempDir)
+    let permManager = PermissionManager(
+        micProvider: StubMicAuthForAppStore(status: .authorized, requestResult: true),
+        audioTapProber: { tapStatus }
+    )
+    let surface = ErrorSurface()
+    let store = AppStore(
+        settings: settings,
+        sourceCatalog: AudioSourceCatalog(provider: EmptyAppStoreProcessListProvider()),
+        permissionManager: permManager,
+        encodingQueue: EncodingQueue(),
+        meters: MeterPublisher(),
+        sessionConfigBuilder: builder,
+        errorSurface: surface
+    )
+    return (store, builder, surface)
+}
+
 /// In-memory bookmark provider that round-trips a URL via its absoluteString.
 private final class PassthroughBookmarkProvider: BookmarkProvider {
     func store(url: URL) throws -> Data {
@@ -270,6 +302,75 @@ final class AppStoreTests: XCTestCase {
         // Just verifies the @Environment(\.appStore) extension compiles + has a default value.
         // The default may be a freshly-built `AppStore` (production deps) or `nil`-typed Optional.
         _ = env.appStore
+    }
+
+    // MARK: - REQ-051: Fail-fast tap availability gate
+
+    /// When tap status is denied and preset needs the tap, `startRecording` must NOT
+    /// start the session (builder.buildCount == 0) and MUST surface an `AppAlert`.
+    func testStartRecordingDeniedTapWithEverythingPresetDoesNotStart() async throws {
+        let (store, builder, surface) = makeAppStoreWithTapStatus(
+            tempDir: tempDir,
+            tapStatus: .deniedByPolicy
+        )
+        // Seed the tap status — refreshAudioTapStatus() schedules async, so set via requestAudioTap()
+        _ = await store.permissionManager.requestAudioTap()
+
+        await store.startRecording(preset: .everything)
+
+        XCTAssertEqual(builder.buildCount, 0, "SessionConfigBuilder must NOT be called when tap is denied")
+        XCTAssertEqual(store.sessionState, .idle, "Session state must remain idle when tap gate blocks start")
+        XCTAssertNotNil(surface.currentAlert, "An AppAlert must be surfaced when the tap gate fires")
+        let alert = try XCTUnwrap(surface.currentAlert)
+        XCTAssertEqual(alert.secondaryAction, .screenRecording,
+                       "Alert's secondary action must deep-link to Screen Recording settings")
+    }
+
+    /// The gate must also block `.specificApp` presets since they require the audio tap.
+    func testStartRecordingDeniedTapWithSpecificAppPresetDoesNotStart() async throws {
+        let (store, builder, surface) = makeAppStoreWithTapStatus(
+            tempDir: tempDir,
+            tapStatus: .deniedByEntitlement
+        )
+        _ = await store.permissionManager.requestAudioTap()
+
+        await store.startRecording(preset: .specificApp(processID: 99))
+
+        XCTAssertEqual(builder.buildCount, 0, "Builder must NOT be called for specificApp preset when tap denied")
+        XCTAssertEqual(store.sessionState, .idle)
+        XCTAssertNotNil(surface.currentAlert)
+    }
+
+    /// Mic-only preset MUST bypass the gate entirely — no probe, no rejection.
+    func testStartRecordingMicOnlyPresetBypassesTapGate() async throws {
+        let (store, builder, surface) = makeAppStoreWithTapStatus(
+            tempDir: tempDir,
+            tapStatus: .deniedByPolicy
+        )
+        _ = await store.permissionManager.requestAudioTap()
+
+        await store.startRecording(preset: .micOnly)
+
+        // The builder may throw (no output folder configured in this minimal setup),
+        // but the gate itself must NOT block the call — buildCount is incremented.
+        XCTAssertGreaterThan(builder.buildCount, 0,
+                             "Builder must be called for micOnly even when tap is denied")
+        XCTAssertNil(surface.currentAlert,
+                     "No tap-gate alert should appear for micOnly preset")
+    }
+
+    /// When tap status is `.available`, the gate is a no-op — session starts normally.
+    func testStartRecordingAvailableTapAllowsStart() async throws {
+        let (store, builder, _) = makeAppStoreWithTapStatus(
+            tempDir: tempDir,
+            tapStatus: .available
+        )
+        _ = await store.permissionManager.requestAudioTap()
+
+        await store.startRecording(preset: .everything)
+
+        XCTAssertGreaterThan(builder.buildCount, 0,
+                             "Builder must be called when tap is available")
     }
 }
 
