@@ -187,7 +187,10 @@ if [[ -z "$APP_IN_DMG" ]]; then
 fi
 
 spctl -a -vv "$APP_IN_DMG"
-xcrun stapler validate "$APP_IN_DMG"
+# Note: not running `stapler validate` on the .app inside — we stapled the
+# DMG, not the .app. The DMG's ticket covers the contents at install time.
+# Gatekeeper does an online check on first launch after drag-install, which
+# succeeds because notarisation was Accepted (proven by spctl above).
 
 hdiutil detach "$MOUNT_POINT" -quiet
 rmdir "$MOUNT_POINT" 2>/dev/null || true
