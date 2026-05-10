@@ -8,6 +8,7 @@ layer_decisions: {}
 reqs:
   - { id: REQ-044, layer: none, integration_confidence: n/a }
   - { id: REQ-045, layer: none, integration_confidence: n/a }
+  - { id: REQ-046, layer: none, integration_confidence: n/a }
 acknowledged_partials: []
 ---
 
@@ -19,12 +20,13 @@ acknowledged_partials: []
 | Classification | bug-fix |
 | Layers in scope | (none — bug-fix) |
 | Layer decisions | (none — all covered) |
-| REQs generated | 2 |
+| REQs generated | 3 |
 
 | REQ | Layer | Integration confidence |
 |---|---|---|
 | REQ-044 | none | n/a |
 | REQ-045 | none | n/a |
+| REQ-046 | none | n/a |
 <!-- capture-summary-end -->
 
 # UR-004: User Request
