@@ -13,6 +13,8 @@ SwiftUI's `Menu` does not expose a native `onMenuOpen` callback, so the trigger 
 
 ## Context
 
+**Depends on:** REQ-048 (calls the `refreshAudioTapStatus()` method added on `PermissionManager`).
+
 UR-005 clarification: "Event-driven — probe on app foreground, on menu open, and on tap-related setting change." This REQ owns the menu-open half. REQ-048 owns the foreground half and provides the `refreshAudioTapStatus()` seam this REQ consumes. Together they replace any need for a timer-based re-probe.
 
 The picker is the moment of truth: if the user grants the entitlement after launch and then immediately opens the dropdown (without leaving the app first), only this trigger surfaces the new availability without forcing a relaunch.

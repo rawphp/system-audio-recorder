@@ -17,6 +17,8 @@ The mic-only preset must skip the gate entirely (it doesn't need the tap).
 
 ## Context
 
+**Depends on:** REQ-048 (calls the `refreshAudioTapStatus()` method added on `PermissionManager`).
+
 UR-005 clarification: the user opted for "Both layers" fail-fast — AppStore does the cheap orchestration gate, RecordingSession does the deep audio-engine check (REQ-052). This REQ owns the orchestration half.
 
 Connector: AppStore already routes session-start errors through `ErrorSurface` (`App/AppStore.swift:317-333` and REQ-033 infrastructure), and a custom-alert path already exists (`reportCustomAlert(AppAlert(...))` at line 325). The new gate reuses both.
