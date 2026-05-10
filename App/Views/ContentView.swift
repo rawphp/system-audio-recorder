@@ -210,8 +210,13 @@ public struct ContentView: View {
                     permissionManager: store.permissionManager,
                     sourceCatalog: store.sourceCatalog
                 )
-                // Build SaveToastViewModel wired to the store's encodingQueue.
-                toastVM = SaveToastViewModel(queue: store.encodingQueue)
+                // Build SaveToastViewModel wired to the store's encodingQueue
+                // and immediately start its observer — observation must not depend
+                // on SaveToast's view lifecycle because that `.task` does not fire
+                // when toastState == .hidden (body resolves to EmptyView).
+                let tvm = SaveToastViewModel(queue: store.encodingQueue)
+                tvm.start()
+                toastVM = tvm
                 // Build EncodingJobsViewModel wired to the store's encodingQueue.
                 jobsVM = EncodingJobsViewModel(queue: store.encodingQueue)
             }

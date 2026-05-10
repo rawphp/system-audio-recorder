@@ -87,6 +87,9 @@ public final class SaveToastViewModel {
     /// Handle to the pending auto-dismiss task so we can cancel it.
     private var dismissTask: Task<Void, Never>?
 
+    /// Handle to the long-lived queue-observation task so we can cancel it on stop().
+    private var observerTask: Task<Void, Never>?
+
     // MARK: - Init
 
     /// Designated initialiser.
@@ -108,6 +111,26 @@ public final class SaveToastViewModel {
         self.queue = queue
         self.dismissAfter = dismissAfter
         self.revealInFinder = revealInFinder
+    }
+
+    // MARK: - Observation lifecycle
+
+    /// Start observing the encoding queue. Idempotent — repeated calls are no-ops.
+    /// Called by the owner (e.g. ContentView) when the view-model is built, so the
+    /// observation does not depend on the SwiftUI view's lifecycle (which can be
+    /// suppressed when `toastState == .hidden` because the body resolves to
+    /// `EmptyView()` and `.task` may be skipped by SwiftUI).
+    public func start() {
+        guard observerTask == nil else { return }
+        observerTask = Task { @MainActor [weak self] in
+            await self?.observeQueue()
+        }
+    }
+
+    /// Cancel the observation task. Call when the owner is going away.
+    public func stopObserving() {
+        observerTask?.cancel()
+        observerTask = nil
     }
 
     // MARK: - Queue observation hook
@@ -326,11 +349,9 @@ public struct SaveToast: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastState)
-        .task {
-            // Delegate observation to the view model, which owns the queue
-            // reference and handleQueueChange() — REQ-058 fix.
-            await viewModel.observeQueue()
-        }
+        // Note: observation is started by the owner via `viewModel.start()`,
+        // not via `.task` here — when toastState == .hidden the body resolves
+        // to EmptyView() and SwiftUI does not fire `.task` reliably on it.
     }
 
     // MARK: - Private helpers

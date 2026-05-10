@@ -43,3 +43,9 @@ After inspection, the toast bug and the failing silence-detector test are NOT th
 - **Silence-detector test failure — separate concern.** Race between the test's hardcoded silence-push timing and the grace-period restart logic. Out of scope for this UR; track separately if it persists.
 
 UR-008 scope: fix the toast observer wiring only.
+
+## Follow-up (2026-05-10)
+
+REQ-058 fixed the observer's wiring (correct properties tracked, `handleQueueChange()` called) but the toast STILL did not appear in production. Diagnostic logging revealed the SwiftUI `.task` modifier on `SaveToast`'s body was never firing because `body` resolves to `Group { EmptyView() }` while `toastState == .hidden`, and SwiftUI does not run `.task` on a view that produces no rendered content.
+
+Resolution: ownership of the observation task moved from the SwiftUI view's `.task` to an explicit `start()` method on `SaveToastViewModel`, called by `ContentView` immediately after building the view-model. Observation now begins independent of the view's render state. Confirmed working in production by Tom on 2026-05-10.
