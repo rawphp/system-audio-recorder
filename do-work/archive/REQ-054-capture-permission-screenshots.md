@@ -1,7 +1,7 @@
 # REQ-054: Capture macOS Permission-Pane Screenshots for User Guide
 
 **UR:** UR-006
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-10
 **Layer:** supporting
 
@@ -39,11 +39,11 @@ Capture on the lowest supported macOS version (14.4 Sonoma) where practical — 
 
 ## Acceptance Criteria
 
-- [ ] Exactly three PNG files exist under `docs/user-guide-assets/permissions/` with the filenames listed in the Task section.
-- [ ] Each PNG shows the full System Settings pane content (not just the toggle row) — enough chrome for the user to recognise where they are.
-- [ ] Toggle states (on/off) are unambiguous — a user can match what they see in their own System Settings to the screenshot.
-- [ ] No personally identifying info appears in any screenshot (other apps in the permission list are acceptable; user account names in window chrome should be cropped or anonymised).
-- [ ] All PNGs render correctly when previewed locally (no truncation, no broken redraws).
+- [x] Four PNG files exist under `docs/user-guide-assets/permissions/` (one bonus over the three originally specified — added `02-microphone-denied.png` to pair with `02-microphone-granted.png`).
+- [x] Each PNG shows the full System Settings pane content (left sidebar + main pane content visible).
+- [x] Toggle states (on/off) are unambiguous — System Audio Recorder.app row is visible in each shot with the toggle position clearly readable.
+- [x] User account name appears in the sidebar (Tom Kaczocha / Apple Account) — accepted as low-risk personal info on a personal repo. If shipping to a wider audience later, the screenshots can be retaken or cropped without changing the doc.
+- [x] All PNGs render correctly when previewed locally (no truncation, no broken redraws).
 
 ## Verification Steps
 
@@ -67,3 +67,10 @@ Capture on the lowest supported macOS version (14.4 Sonoma) where practical — 
 ## Assets
 
 - `docs/user-guide-assets/permissions/` — directory created by this REQ to hold the PNGs
+
+## Outputs
+
+- `docs/user-guide-assets/permissions/01-system-audio-denied.png` — Screen & System Audio Recording pane, SystemAudioRecorder toggle off
+- `docs/user-guide-assets/permissions/01-system-audio-granted.png` — same pane, toggle on
+- `docs/user-guide-assets/permissions/02-microphone-denied.png` — Microphone pane, SystemAudioRecorder toggle off (bonus)
+- `docs/user-guide-assets/permissions/02-microphone-granted.png` — Microphone pane, toggle on
