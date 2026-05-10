@@ -138,9 +138,26 @@ echo "    DMG created: $DMG_PATH"
 # 7. Submit for notarization
 # ─────────────────────────────────────────────────────────────────────────────
 echo "==> Submitting to Apple for notarization (this may take several minutes)…"
-xcrun notarytool submit "$DMG_PATH" \
+# `notarytool submit --wait` exits 0 even when Apple returns Invalid, so we
+# parse the output to detect that case ourselves and fetch the rejection log.
+SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
   --keychain-profile "$NOTARYTOOL_PROFILE" \
-  --wait
+  --wait 2>&1 | tee /dev/stderr)
+
+SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" \
+  | awk '/^[[:space:]]+id:[[:space:]]/{id=$2} END{print id}')
+NOTARY_STATUS=$(echo "$SUBMIT_OUTPUT" \
+  | awk '/^[[:space:]]+status:[[:space:]]/{s=$2} END{print s}')
+
+if [[ "$NOTARY_STATUS" != "Accepted" ]]; then
+  echo "ERROR: Notarization status: ${NOTARY_STATUS:-unknown}" >&2
+  if [[ -n "${SUBMISSION_ID:-}" ]]; then
+    echo "==> Fetching notarization log for submission $SUBMISSION_ID…" >&2
+    xcrun notarytool log "$SUBMISSION_ID" \
+      --keychain-profile "$NOTARYTOOL_PROFILE" >&2 || true
+  fi
+  exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. Staple the notarization ticket
