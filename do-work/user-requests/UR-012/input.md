@@ -1,8 +1,37 @@
 ---
 ur: UR-012
 received: 2026-05-11
-status: intake
+status: captured
+classification: feature
+layers_in_scope: [audio_engine, ui, supporting]
+layer_decisions: { supporting: no }
+reqs:
+  - { id: REQ-064, layer: audio_engine, integration_confidence: high }
+  - { id: REQ-065, layer: audio_engine, integration_confidence: high }
+  - { id: REQ-066, layer: audio_engine, integration_confidence: high }
+  - { id: REQ-067, layer: ui, integration_confidence: high }
+  - { id: REQ-068, layer: ui, integration_confidence: high }
+acknowledged_partials: []
 ---
+
+<!-- capture-summary-start -->
+## Capture summary (2026-05-11)
+
+| Item | Value |
+|---|---|
+| Classification | feature |
+| Layers in scope | audio_engine, ui, supporting |
+| Layer decisions | supporting: no |
+| REQs generated | 5 |
+
+| REQ | Layer | Integration confidence |
+|---|---|---|
+| REQ-064 | audio_engine | high |
+| REQ-065 | audio_engine | high |
+| REQ-066 | audio_engine | high |
+| REQ-067 | ui | high |
+| REQ-068 | ui | high |
+<!-- capture-summary-end -->
 
 # UR-012: User Request
 
