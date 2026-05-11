@@ -357,9 +357,12 @@ final class AppStoreTests: XCTestCase {
 
     func testStartRecordingPassesPresetToBuilder() async throws {
         let (store, builder, _) = makeAppStore(tempDir: tempDir)
-        await store.startRecording(preset: .specificApp(processID: 42))
+        await store.startRecording(preset: .specificApp(bundleID: "com.example.TestApp"))
+        // Note: DefaultSessionConfigBuilder.build for .specificApp currently throws
+        // unsupportedPreset (REQ-066 will implement pid resolution); the builder
+        // stub in tests does NOT throw, so state reaches .recording.
         try await waitForState(store, expected: .recording)
-        XCTAssertEqual(builder.lastPreset, .specificApp(processID: 42))
+        XCTAssertEqual(builder.lastPreset, .specificApp(bundleID: "com.example.TestApp"))
         await store.stopRecording()
     }
 
@@ -402,7 +405,7 @@ final class AppStoreTests: XCTestCase {
         )
         _ = await store.permissionManager.requestAudioTap()
 
-        await store.startRecording(preset: .specificApp(processID: 99))
+        await store.startRecording(preset: .specificApp(bundleID: "com.example.TestApp"))
 
         XCTAssertEqual(builder.buildCount, 0, "Builder must NOT be called for specificApp preset when tap denied")
         XCTAssertEqual(store.sessionState, .idle)

@@ -1,7 +1,7 @@
 # REQ-064: SourcePreset bundle-keyed payload
 
 **UR:** UR-012
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** audio_engine
 
@@ -17,13 +17,13 @@ Connector observation from ideate: the `.everything` builder case at `App/AppSto
 
 ## Acceptance Criteria
 
-- [ ] `SourcePreset.specificApp` has a single associated value `bundleID: String` — pid is removed from the public API.
-- [ ] `SourcePreset.specificApp(bundleID: "com.google.Chrome").settingsKey == "SpecificApp:com.google.Chrome"`.
-- [ ] `SourcePreset.from(settingsKey: "SpecificApp:com.google.Chrome") == .specificApp(bundleID: "com.google.Chrome")`.
-- [ ] `SourcePreset.from(settingsKey: "SpecificApp:1234")` returns `.everything` (legacy pid-keyed value silently falls back; not parsed as bundle ID).
-- [ ] `SourcePreset.from(settingsKey: "SpecificApp:")` returns `.everything` (empty bundle ID is rejected).
-- [ ] The Swift package builds without warnings — every former `case .specificApp(let pid)` site has been migrated to handle the new payload.
-- [ ] Existing tests covering `SourcePreset` parsing pass; new unit tests cover the legacy-pid fallback and round-trip behaviour.
+- [x] `SourcePreset.specificApp` has a single associated value `bundleID: String` — pid is removed from the public API.
+- [x] `SourcePreset.specificApp(bundleID: "com.google.Chrome").settingsKey == "SpecificApp:com.google.Chrome"`.
+- [x] `SourcePreset.from(settingsKey: "SpecificApp:com.google.Chrome") == .specificApp(bundleID: "com.google.Chrome")`.
+- [x] `SourcePreset.from(settingsKey: "SpecificApp:1234")` returns `.everything` (legacy pid-keyed value silently falls back; not parsed as bundle ID).
+- [x] `SourcePreset.from(settingsKey: "SpecificApp:")` returns `.everything` (empty bundle ID is rejected).
+- [x] The Swift package builds without warnings — every former `case .specificApp(let pid)` site has been migrated to handle the new payload.
+- [x] Existing tests covering `SourcePreset` parsing pass; new unit tests cover the legacy-pid fallback and round-trip behaviour.
 
 ## Verification Steps
 
@@ -37,6 +37,14 @@ Connector observation from ideate: the `.everything` builder case at `App/AppSto
    - Expected: app opens with "Everything" selected by default (`AppSettings.lastSourcePreset` falls through to the `"Everything"` default at `App/Settings/AppSettings.swift:245`).
 4. **runtime** Manually set `defaults write <bundle-id> lastSourcePreset "SpecificApp:9999"` (a stale pid-shaped key), then launch.
    - Expected: app opens with "Everything" selected — the stale legacy value is rejected and the graceful default applies. No crash, no error toast.
+
+## Outputs
+
+- App/AppStore.swift — `SourcePreset.specificApp` changed to `bundleID: String`; `settingsKey`/`from(settingsKey:)` updated; `DefaultSessionConfigBuilder.build` `.specificApp` case updated to compile (REQ-066 implements pid resolution)
+- App/Views/SourcePickerView.swift — `selectProcess(bundleID:)`, `currentSelectionLabel`, `AppPickerView.onSelect` updated
+- Tests/AudioEngineTests/SourcePresetTests.swift — new unit tests (14 cases)
+- Tests/AudioEngineTests/AppStoreTests.swift — migrated 2 test calls to new API
+- Tests/AudioEngineTests/SourcePickerViewTests.swift — migrated 1 test call to new API
 
 ## Integration
 

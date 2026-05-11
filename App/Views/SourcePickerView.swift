@@ -104,9 +104,13 @@ public final class SourcePickerViewModel {
         selectedPresetKey = key
     }
 
-    /// Select a specific app process by PID.
-    public func selectProcess(pid: pid_t) {
-        let key = "SpecificApp:\(pid)"
+    /// Select a specific app by bundle identifier.
+    ///
+    /// REQ-064: payload changed from `pid_t` to `bundleID: String` so the preset
+    /// key is stable across relaunches. Pid resolution happens at recording-start
+    /// time (REQ-066/REQ-067).
+    public func selectProcess(bundleID: String) {
+        let key = SourcePreset.specificApp(bundleID: bundleID).settingsKey
         settings.lastSourcePreset = key
         selectedPresetKey = key
         showAppPicker = false
@@ -219,9 +223,9 @@ public final class SourcePickerViewModel {
     public var currentSelectionLabel: String {
         let key = selectedPresetKey
         if key.hasPrefix("SpecificApp:") {
-            let pidStr = String(key.dropFirst("SpecificApp:".count))
-            if let pid = pid_t(pidStr),
-               let process = sourceCatalog.processes.first(where: { $0.pid == pid }) {
+            let bundleID = String(key.dropFirst("SpecificApp:".count))
+            // Look up by bundle ID in the catalog (REQ-064: payload is bundle ID not pid).
+            if let process = sourceCatalog.processes.first(where: { $0.bundleID == bundleID }) {
                 return process.displayName
             }
             return "Specific app"
@@ -238,10 +242,13 @@ public final class SourcePickerViewModel {
 // MARK: - AppPickerView (inline app selector)
 
 /// Minimal app picker: lists catalog processes and lets the user pick one.
+///
+/// REQ-064: callback now passes `bundleID: String` rather than `pid_t` so the
+/// preset is stable across relaunches.
 struct AppPickerView: View {
     @Binding var isPresented: Bool
     let catalog: AudioSourceCatalog
-    let onSelect: (pid_t) -> Void
+    let onSelect: (String) -> Void   // bundleID
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -268,7 +275,7 @@ struct AppPickerView: View {
             } else {
                 List(catalog.processes, id: \.pid) { process in
                     Button {
-                        onSelect(process.pid)
+                        onSelect(process.bundleID ?? process.displayName)
                     } label: {
                         HStack {
                             if let icon = process.icon {
@@ -342,7 +349,7 @@ public struct SourcePickerView: View {
             AppPickerView(
                 isPresented: $viewModel.showAppPicker,
                 catalog: viewModel.sourceCatalog,
-                onSelect: { pid in viewModel.selectProcess(pid: pid) }
+                onSelect: { bundleID in viewModel.selectProcess(bundleID: bundleID) }
             )
         }
         // Sheet: Mixer panel — REQ-028 stub (AC #6)

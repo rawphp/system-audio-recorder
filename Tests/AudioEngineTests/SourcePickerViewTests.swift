@@ -249,10 +249,10 @@ final class SourcePickerViewModelTests: XCTestCase {
         let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
         let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
 
-        vm.selectProcess(pid: 12345)
+        vm.selectProcess(bundleID: "com.example.TestApp")
 
-        XCTAssertEqual(settings.lastSourcePreset, "SpecificApp:12345")
-        XCTAssertEqual(vm.selectedPresetKey, "SpecificApp:12345")
+        XCTAssertEqual(settings.lastSourcePreset, "SpecificApp:com.example.TestApp")
+        XCTAssertEqual(vm.selectedPresetKey, "SpecificApp:com.example.TestApp")
     }
 
     // -----------------------------------------------------------------------

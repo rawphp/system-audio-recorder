@@ -6,32 +6,37 @@ import SwiftUI
 // MARK: - SourcePreset
 
 /// User-facing source preset. Mirrors the spec §4.2 source picker options:
-/// - `.everything`        — all running audio-emitting processes (system audio).
-/// - `.specificApp(pid:)` — a single tapped process.
-/// - `.micOnly`           — microphone only, no process taps.
+/// - `.everything`           — all running audio-emitting processes (system audio).
+/// - `.specificApp(bundleID:)` — all pids sharing a bundle identifier (resolved at recording-start time).
+/// - `.micOnly`              — microphone only, no process taps.
 public enum SourcePreset: Equatable, Sendable {
     case everything
-    case specificApp(processID: pid_t)
+    case specificApp(bundleID: String)
     case micOnly
 
     /// String key used by `AppSettings.lastSourcePreset` for persistence.
     public var settingsKey: String {
         switch self {
-        case .everything:                return "Everything"
-        case .specificApp(let pid):      return "SpecificApp:\(pid)"
-        case .micOnly:                   return "MicOnly"
+        case .everything:                      return "Everything"
+        case .specificApp(let bundleID):       return "SpecificApp:\(bundleID)"
+        case .micOnly:                         return "MicOnly"
         }
     }
 
     /// Inverse of `settingsKey`: parse a persisted string back into a preset.
-    /// Returns `.everything` for unknown values (graceful default).
+    ///
+    /// Returns `.everything` for unknown values (graceful default), including:
+    /// - Legacy `SpecificApp:<numeric-pid>` values (pid_t is Int32 — purely numeric strings).
+    /// - `SpecificApp:` with an empty suffix (empty bundle ID is invalid).
     public static func from(settingsKey key: String) -> SourcePreset {
         if key == "Everything" { return .everything }
         if key == "MicOnly"    { return .micOnly }
         if key.hasPrefix("SpecificApp:") {
             let raw = String(key.dropFirst("SpecificApp:".count))
-            if let pid = pid_t(raw) {
-                return .specificApp(processID: pid)
+            // Reject empty bundle IDs and legacy numeric-pid values.
+            // A valid bundle ID is non-empty and not a pure integer string.
+            if !raw.isEmpty && Int32(raw) == nil {
+                return .specificApp(bundleID: raw)
             }
         }
         return .everything
@@ -128,16 +133,13 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
                 sources.append(SessionConfig.Source(id: "app:\(pid)", emitter: emitter))
             }
 
-        case .specificApp(let pid):
-            let capture = try ProcessTapCapture(pids: [pid])
-            guard let emitter = ProcessTapSourceEmitter(
-                id: "app:\(pid)",
-                capture: capture,
-                pid: pid
-            ) else {
-                throw BuilderError.unsupportedPreset
-            }
-            sources.append(SessionConfig.Source(id: "app:\(pid)", emitter: emitter))
+        case .specificApp(let bundleID):
+            // REQ-064: payload is now a bundle ID; pid resolution at recording-start
+            // time is implemented in REQ-066. For now, surface unsupportedPreset so
+            // the build compiles — REQ-066 replaces this body with catalog-based
+            // multi-pid tap logic.
+            _ = bundleID
+            throw BuilderError.unsupportedPreset
         }
 
         return SessionConfig(
