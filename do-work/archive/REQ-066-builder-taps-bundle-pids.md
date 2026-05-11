@@ -1,7 +1,7 @@
 # REQ-066: Builder taps all bundle pids on .specificApp
 
 **UR:** UR-012
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** audio_engine
 
@@ -21,13 +21,13 @@ Challenger observation incorporated: the snapshot-at-start trade-off (new helper
 
 ## Acceptance Criteria
 
-- [ ] `.specificApp(bundleID: "com.google.Chrome")` builds a `SessionConfig` whose `sources` array contains one `SessionConfig.Source` per pid returned by `catalog.pids(forBundle: "com.google.Chrome")`.
-- [ ] When the catalog returns N pids for the bundle, the resulting `SessionConfig.sources.count == N` (parent + helpers all get emitters).
-- [ ] Empty bundle group throws `BuilderError.noAudibleProcesses` — same error the `.everything` case throws when the catalog is empty.
-- [ ] Per-pid emitter construction failures land in `SessionConfig.initialErrors` via `capture.initFailures` (REQ-045 graceful-failure semantics preserved — partial failure does not abort the build).
-- [ ] `ProcessTapSourceEmitter` ids follow the existing `"app:<pid>"` convention used by `.everything` so downstream signal-level wiring (REQ-046) and the mixer graph (REQ-010) treat the sources identically.
-- [ ] Unit test with a stub catalog + stub `ProcessTapCaptureFactory`: `.specificApp(bundleID:)` with a 3-pid group yields a config with 3 sources whose ids are `app:<pid1>`, `app:<pid2>`, `app:<pid3>`.
-- [ ] Unit test: empty group throws `noAudibleProcesses`.
+- [x] `.specificApp(bundleID: "com.google.Chrome")` builds a `SessionConfig` whose `sources` array contains one `SessionConfig.Source` per pid returned by `catalog.pids(forBundle: "com.google.Chrome")`.
+- [x] When the catalog returns N pids for the bundle, the resulting `SessionConfig.sources.count == N` (parent + helpers all get emitters).
+- [x] Empty bundle group throws `BuilderError.noAudibleProcesses` — same error the `.everything` case throws when the catalog is empty.
+- [x] Per-pid emitter construction failures land in `SessionConfig.initialErrors` via `capture.initFailures` (REQ-045 graceful-failure semantics preserved — partial failure does not abort the build).
+- [x] `ProcessTapSourceEmitter` ids follow the existing `"app:<pid>"` convention used by `.everything` so downstream signal-level wiring (REQ-046) and the mixer graph (REQ-010) treat the sources identically.
+- [x] Unit test with a stub catalog + stub `ProcessTapCaptureFactory`: `.specificApp(bundleID:)` with a 3-pid group yields a config with 3 sources whose ids are `app:<pid1>`, `app:<pid2>`, `app:<pid3>`.
+- [x] Unit test: empty group throws `noAudibleProcesses`.
 
 ## Verification Steps
 
@@ -39,6 +39,11 @@ Challenger observation incorporated: the snapshot-at-start trade-off (new helper
    - Expected: the dB meter rises above `-∞` during recording (audio is being captured). The saved WAV file in the configured output folder, when opened in any audio player, contains the audible Chrome audio. This step reproduces the original UR-012 failure path and confirms the fix.
 4. **runtime** Repeat step 3 with VS Code or Slack (Electron apps with `<bundle>.helper` helpers playing a notification sound).
    - Expected: same result — non-silent recording from the grouped Electron app.
+
+## Outputs
+
+- `App/AppStore.swift` — replaced `.specificApp` stub (`unsupportedPreset`) with full pid-resolution logic mirroring `.everything`; added `CaptureFactory` typealias and injectable `captureFactory` parameter to `DefaultSessionConfigBuilder.init`; `.everything` case now also routes through `captureFactory` for consistency.
+- `Tests/AudioEngineTests/DefaultSessionConfigBuilderTests.swift` — 4 new unit tests covering: 3-pid bundle group, empty group throws, per-pid failure lands in initialErrors, source id convention.
 
 ## Integration
 

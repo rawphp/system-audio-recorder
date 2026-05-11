@@ -76,13 +76,27 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
         case noAudibleProcesses
     }
 
-    private let catalog: AudioSourceCatalog?
+    /// Closure type that constructs a `ProcessTapCapture` from a list of pids.
+    /// Tests inject a stub that bypasses Core Audio; production uses the default
+    /// `ProcessTapCapture.init(pids:)`.
+    public typealias CaptureFactory = ([pid_t]) throws -> ProcessTapCapture
 
-    /// - Parameter catalog: Optional shared `AudioSourceCatalog`. When provided,
-    ///   `.everything` taps every pid currently listed by the catalog. When `nil`
-    ///   (e.g. older test wiring), the builder refreshes a private catalog.
-    public init(catalog: AudioSourceCatalog? = nil) {
+    private let catalog: AudioSourceCatalog?
+    private let captureFactory: CaptureFactory
+
+    /// - Parameters:
+    ///   - catalog: Optional shared `AudioSourceCatalog`. When provided,
+    ///     `.everything` and `.specificApp` tap pids from this catalog. When
+    ///     `nil`, a private catalog is created.
+    ///   - captureFactory: Closure that constructs a `ProcessTapCapture` from
+    ///     a list of pids. Defaults to the real `ProcessTapCapture.init(pids:)`.
+    ///     Tests inject a stub to bypass Core Audio.
+    public init(
+        catalog: AudioSourceCatalog? = nil,
+        captureFactory: CaptureFactory? = nil
+    ) {
         self.catalog = catalog
+        self.captureFactory = captureFactory ?? { pids in try ProcessTapCapture(pids: pids) }
     }
 
     public func build(preset: SourcePreset, settings: AppSettings) throws -> SessionConfig {
@@ -120,7 +134,7 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
             // UR-004 graceful failure). Surviving pids' streams are exposed
             // via `capture.streams`; failed pids are surfaced via initFailures
             // for the recording session to forward to REQ-033 ErrorSurface.
-            let capture = try ProcessTapCapture(pids: pids)
+            let capture = try captureFactory(pids)
             initialErrors.append(contentsOf: capture.initFailures)
             for pid in pids {
                 guard let emitter = ProcessTapSourceEmitter(
@@ -134,12 +148,34 @@ public final class DefaultSessionConfigBuilder: SessionConfigBuilder {
             }
 
         case .specificApp(let bundleID):
-            // REQ-064: payload is now a bundle ID; pid resolution at recording-start
-            // time is implemented in REQ-066. For now, surface unsupportedPreset so
-            // the build compiles — REQ-066 replaces this body with catalog-based
-            // multi-pid tap logic.
-            _ = bundleID
-            throw BuilderError.unsupportedPreset
+            // REQ-066: resolve all pids for the bundle group (parent + helpers),
+            // construct one shared ProcessTapCapture, and emit one source per pid.
+            // Mirrors the `.everything` case with the pid list scoped to one bundle.
+            let activeCatalog = catalog ?? AudioSourceCatalog()
+            activeCatalog.refresh()
+            let pids = activeCatalog.pids(forBundle: bundleID)
+
+            guard !pids.isEmpty else {
+                throw BuilderError.noAudibleProcesses
+            }
+
+            // ProcessTapCapture only throws when EVERY pid fails (REQ-045 graceful
+            // failure). Per-pid failures are recorded in initFailures and forwarded
+            // to SessionConfig.initialErrors so REQ-033 ErrorSurface can render them.
+            // Snapshot semantics: pid list is fixed at build time — helpers spawned
+            // after recording starts are not added (deliberate per UR-012 Q2).
+            let capture = try captureFactory(pids)
+            initialErrors.append(contentsOf: capture.initFailures)
+            for pid in pids {
+                guard let emitter = ProcessTapSourceEmitter(
+                    id: "app:\(pid)",
+                    capture: capture,
+                    pid: pid
+                ) else {
+                    continue
+                }
+                sources.append(SessionConfig.Source(id: "app:\(pid)", emitter: emitter))
+            }
         }
 
         return SessionConfig(
