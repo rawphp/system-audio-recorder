@@ -19,6 +19,8 @@ The "Choose an app" sheet retains its current chrome (header, cancel button, emp
 
 ## Context
 
+**Depends on:** REQ-064 (the `onSelect` closure signature switches from `(pid_t) -> Void` to `(String) -> Void` to carry the bundle ID; the consuming view model is updated in REQ-068).
+
 UR-012 screenshot 2 shows the picker listing both `Google Chrome` (silent parent) and a bare `helper` row (audio-emitting helper). Users can't tell which to pick, and the obvious choice is wrong. Grouping by bundle collapses the helpers under their parent so "Google Chrome" becomes a single, correct row. Orphans (helpers whose stripped bundle ID has no parent in the catalog) still appear, but labeled with their raw bundle ID so they're identifiable rather than ambiguous.
 
 Connector observation from ideate: the catalog already surfaces helper pids with bundle IDs intact (REQ-044's HAL-bundle-ID-first fallback at `AudioEngine/Capture/AudioSourceCatalog.swift:176`); this REQ is purely a UI grouping pass over data the catalog already provides.

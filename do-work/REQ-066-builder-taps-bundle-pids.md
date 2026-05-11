@@ -11,6 +11,8 @@ In `DefaultSessionConfigBuilder.build`, change the `.specificApp(bundleID:)` cas
 
 ## Context
 
+**Depends on:** REQ-064 (consumes the bundle-keyed `.specificApp(bundleID:)` payload), REQ-065 (calls `AudioSourceCatalog.pids(forBundle:)` for pid resolution).
+
 UR-012 root cause: `.specificApp(processID: pid_t)` taps a single pid, but Chromium / Electron apps emit audio from helper pids, not the parent. With REQ-064 (bundle-keyed preset) and REQ-065 (catalog grouping) in place, this REQ is the final wiring change: tap every pid in the bundle group. This is the REQ the user reproduces against — picking "Google Chrome" must now produce a non-silent recording.
 
 Connector observation from ideate: the `.everything` case at `App/AppStore.swift:102-129` already does exactly this shape (refresh → enumerate pids → construct `ProcessTapCapture` → loop emitters) — the new code path reuses the structure with the pid list scoped to one bundle group.

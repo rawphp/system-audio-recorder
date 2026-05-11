@@ -16,6 +16,8 @@ Migrate `SourcePickerViewModel` from pid-keyed to bundle-keyed selection:
 
 ## Context
 
+**Depends on:** REQ-064 (new `SpecificApp:<bundleID>` settings key format), REQ-065 (`AudioSourceCatalog.pids(forBundle:)` for label resolution), REQ-067 (`AppPickerView.onSelect` now passes a bundle ID String, not a pid).
+
 This REQ closes the user-visible loop: REQ-064 changed the preset payload, REQ-067 changed what the picker emits, this REQ wires the view model to consume bundle IDs end-to-end and shows the right label in the dropdown. Without it, selecting "Google Chrome" in the new picker would persist a bundle key but the dropdown label would still try to parse a pid and show "Specific app".
 
 Connector observation from ideate: `currentSelectionLabel`'s existing structure (`App/Views/SourcePickerView.swift:219-238`) already follows a "parse key → resolve display name → fallback" shape; this REQ swaps the resolution mechanism without reshaping the function.
