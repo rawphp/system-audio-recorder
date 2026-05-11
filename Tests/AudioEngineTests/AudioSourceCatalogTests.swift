@@ -278,4 +278,157 @@ final class AudioSourceCatalogTests: XCTestCase {
         XCTAssertTrue(catalog.processes.isEmpty,
             "Process with no bundle ID from any source must be filtered")
     }
+
+    // MARK: - pids(forBundle:) tests (REQ-065)
+
+    // Helper that builds a catalog from a list of (pid, bundleID) pairs using
+    // unresolvable pids so NSRunningApplication is never consulted.
+    private func catalog(from entries: [(pid: pid_t, bundleID: String)]) -> AudioSourceCatalog {
+        let mock = MockProcessListProvider()
+        mock.entries = entries.enumerated().map { idx, entry in
+            MockProcessListProvider.Entry(
+                objectID: AudioObjectID(9000 + idx),
+                pid: entry.pid,
+                bundleID: entry.bundleID,
+                executableName: entry.bundleID.split(separator: ".").last.map(String.init)
+            )
+        }
+        let cat = AudioSourceCatalog(provider: mock)
+        cat.refresh()
+        return cat
+    }
+
+    // MARK: testPidsForBundle_parentPlusHelpers
+    //
+    // REQ-065 AC: parent + .helper + .helper.GPU all returned for the parent
+    // bundle ID; Safari pid excluded.
+    func testPidsForBundle_parentPlusHelpers() {
+        let basePID: pid_t = pid_t.max - 10
+        let helperPID: pid_t = pid_t.max - 11
+        let gpuPID: pid_t = pid_t.max - 12
+        let safariPID: pid_t = pid_t.max - 13
+
+        let cat = catalog(from: [
+            (pid: basePID,    bundleID: "com.google.Chrome"),
+            (pid: helperPID,  bundleID: "com.google.Chrome.helper"),
+            (pid: gpuPID,     bundleID: "com.google.Chrome.helper.GPU"),
+            (pid: safariPID,  bundleID: "com.apple.Safari"),
+        ])
+
+        let result = cat.pids(forBundle: "com.google.Chrome")
+
+        XCTAssertEqual(result.count, 3, "parent + .helper + .helper.GPU should all be returned")
+        XCTAssertTrue(result.contains(basePID),   "parent pid must be included")
+        XCTAssertTrue(result.contains(helperPID), ".helper pid must be included")
+        XCTAssertTrue(result.contains(gpuPID),    ".helper.GPU pid must be included")
+        XCTAssertFalse(result.contains(safariPID), "Safari pid must be excluded")
+    }
+
+    // MARK: testPidsForBundle_substringWithoutSeparatorRejected
+    //
+    // REQ-065 AC: com.google.Chromehelper does NOT match com.google.Chrome.
+    func testPidsForBundle_substringWithoutSeparatorRejected() {
+        let pid1: pid_t = pid_t.max - 20
+
+        let cat = catalog(from: [
+            (pid: pid1, bundleID: "com.google.Chromehelper"),
+        ])
+
+        let result = cat.pids(forBundle: "com.google.Chrome")
+
+        XCTAssertTrue(result.isEmpty,
+            "Substring match without .helper separator must be rejected")
+    }
+
+    // MARK: testPidsForBundle_bundleIsolation
+    //
+    // REQ-065 AC: pids(forBundle: "com.apple.Safari") must exclude Chrome pids.
+    func testPidsForBundle_bundleIsolation() {
+        let chromePID: pid_t = pid_t.max - 30
+        let helperPID: pid_t = pid_t.max - 31
+        let safariPID: pid_t = pid_t.max - 32
+
+        let cat = catalog(from: [
+            (pid: chromePID,  bundleID: "com.google.Chrome"),
+            (pid: helperPID,  bundleID: "com.google.Chrome.helper"),
+            (pid: safariPID,  bundleID: "com.apple.Safari"),
+        ])
+
+        let result = cat.pids(forBundle: "com.apple.Safari")
+
+        XCTAssertEqual(result, [safariPID], "Only Safari pid should be returned")
+    }
+
+    // MARK: testPidsForBundle_noMatchReturnsEmptyArray
+    //
+    // REQ-065 AC: non-existent bundle returns [] not nil.
+    func testPidsForBundle_noMatchReturnsEmptyArray() {
+        let pid1: pid_t = pid_t.max - 40
+
+        let cat = catalog(from: [
+            (pid: pid1, bundleID: "com.google.Chrome"),
+        ])
+
+        let result = cat.pids(forBundle: "com.nonexistent.app")
+
+        XCTAssertTrue(result.isEmpty, "Non-existent bundle must return an empty array")
+    }
+
+    // MARK: testPidsForBundle_doesNotMutateProcesses
+    //
+    // REQ-065 AC: calling pids(forBundle:) must not mutate self.processes.
+    func testPidsForBundle_doesNotMutateProcesses() {
+        let pid1: pid_t = pid_t.max - 50
+        let pid2: pid_t = pid_t.max - 51
+
+        let cat = catalog(from: [
+            (pid: pid1, bundleID: "com.google.Chrome"),
+            (pid: pid2, bundleID: "com.google.Chrome.helper"),
+        ])
+
+        let beforeCount = cat.processes.count
+        let beforePIDs  = cat.processes.map(\.pid)
+
+        _ = cat.pids(forBundle: "com.google.Chrome")
+
+        XCTAssertEqual(cat.processes.count, beforeCount,
+            "pids(forBundle:) must not mutate the processes array count")
+        XCTAssertEqual(cat.processes.map(\.pid), beforePIDs,
+            "pids(forBundle:) must not reorder or change the processes array")
+    }
+
+    // MARK: testPidsForBundle_preservesCatalogOrder
+    //
+    // REQ-065 AC: result preserves catalog insertion order.
+    func testPidsForBundle_preservesCatalogOrder() {
+        let pid1: pid_t = pid_t.max - 60
+        let pid2: pid_t = pid_t.max - 61
+        let pid3: pid_t = pid_t.max - 62
+
+        let cat = catalog(from: [
+            (pid: pid1, bundleID: "com.google.Chrome"),
+            (pid: pid2, bundleID: "com.google.Chrome.helper"),
+            (pid: pid3, bundleID: "com.google.Chrome.helper.Renderer"),
+        ])
+
+        let result = cat.pids(forBundle: "com.google.Chrome")
+
+        XCTAssertEqual(result, [pid1, pid2, pid3],
+            "pids(forBundle:) must preserve catalog order")
+    }
+
+    // MARK: testPidsForBundle_parentOnlyGroup
+    //
+    // When no helpers are present, only the parent pid is returned.
+    func testPidsForBundle_parentOnlyGroup() {
+        let pid1: pid_t = pid_t.max - 70
+
+        let cat = catalog(from: [
+            (pid: pid1, bundleID: "com.apple.Safari"),
+        ])
+
+        let result = cat.pids(forBundle: "com.apple.Safari")
+
+        XCTAssertEqual(result, [pid1], "Parent-only group must return exactly the parent pid")
+    }
 }

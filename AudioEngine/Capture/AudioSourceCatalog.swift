@@ -154,6 +154,31 @@ public final class AudioSourceCatalog {
         self.provider = provider
     }
 
+    /// Returns the pids of every process in `self.processes` whose bundle ID
+    /// is part of the bundle group identified by `bundleID`.
+    ///
+    /// A process belongs to the group if its bundle ID is:
+    /// - exactly `bundleID` (the parent process), or
+    /// - prefixed with `bundleID + ".helper"` (helper variants such as
+    ///   `.helper`, `.helper.GPU`, `.helper.Renderer`, etc.)
+    ///
+    /// The `.helper` boundary check (dot separator before `helper`) ensures that
+    /// `com.google.Chromehelper` does NOT match `com.google.Chrome`.
+    ///
+    /// Result preserves catalog order. Returns an empty `[pid_t]` when no
+    /// processes match. Does not call `refresh()` — callers refresh when they
+    /// need a current snapshot.
+    public func pids(forBundle bundleID: String) -> [pid_t] {
+        let helperPrefix = bundleID + ".helper"
+        return processes.compactMap { process in
+            guard let bid = process.bundleID else { return nil }
+            if bid == bundleID || bid.hasPrefix(helperPrefix) {
+                return process.pid
+            }
+            return nil
+        }
+    }
+
     /// Queries the HAL for the current process list and updates `processes`.
     public func refresh() {
         let objectIDs = provider.audioProcessObjectIDs()
