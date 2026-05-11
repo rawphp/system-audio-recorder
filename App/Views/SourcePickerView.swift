@@ -108,8 +108,10 @@ public final class SourcePickerViewModel {
     ///
     /// REQ-064: payload changed from `pid_t` to `bundleID: String` so the preset
     /// key is stable across relaunches. Pid resolution happens at recording-start
-    /// time (REQ-066/REQ-067).
-    public func selectProcess(bundleID: String) {
+    /// time (REQ-066).
+    /// REQ-068: renamed from `selectProcess(bundleID:)` to `selectBundle(bundleID:)` to
+    /// align with the bundle-keyed API surface across the picker and view model.
+    public func selectBundle(bundleID: String) {
         let key = SourcePreset.specificApp(bundleID: bundleID).settingsKey
         settings.lastSourcePreset = key
         selectedPresetKey = key
@@ -220,15 +222,45 @@ public final class SourcePickerViewModel {
     // MARK: - Display label for current selection
 
     /// Human-readable description of the active preset for the Menu button label.
+    ///
+    /// REQ-068: `SpecificApp:<bundleID>` keys are resolved via `pids(forBundle:)`
+    /// (REQ-065) and `NSRunningApplication`. Resolution order:
+    ///   1. First pid in the bundle group that has an `NSRunningApplication.localizedName`.
+    ///   2. Catalog `displayName` for the exact parent process (bundleID == key).
+    ///   3. Raw bundleID — orphan case: pids exist but no parent + no NSRunningApplication name.
+    ///   4. "Specific app" — no pids match the bundle at all.
+    ///
+    /// Note: The legacy `SpecificApp:<numeric-pid>` branch has been removed. REQ-064
+    /// already makes numeric pid-shaped keys fall back to `.everything` upstream (via
+    /// `SourcePreset.from(settingsKey:)`), so this code path is unreachable in practice.
     public var currentSelectionLabel: String {
         let key = selectedPresetKey
         if key.hasPrefix("SpecificApp:") {
             let bundleID = String(key.dropFirst("SpecificApp:".count))
-            // Look up by bundle ID in the catalog (REQ-064: payload is bundle ID not pid).
-            if let process = sourceCatalog.processes.first(where: { $0.bundleID == bundleID }) {
-                return process.displayName
+
+            // Step 1: resolve via pids(forBundle:) + NSRunningApplication.
+            let pids = sourceCatalog.pids(forBundle: bundleID)
+
+            // No pids at all → final fallback.
+            guard !pids.isEmpty else {
+                return "Specific app"
             }
-            return "Specific app"
+
+            // Try NSRunningApplication for any pid in the group.
+            for pid in pids {
+                if let app = NSRunningApplication(processIdentifier: pid),
+                   let name = app.localizedName, !name.isEmpty {
+                    return name
+                }
+            }
+
+            // Step 2: fall back to the catalog's displayName for the exact parent process.
+            if let parent = sourceCatalog.processes.first(where: { $0.bundleID == bundleID }) {
+                return parent.displayName
+            }
+
+            // Step 3: orphan — pids exist but no parent process and no NSRunningApplication name.
+            return bundleID
         }
         switch key {
         case "Everything":         return "Everything"
@@ -438,7 +470,7 @@ public struct SourcePickerView: View {
             AppPickerView(
                 isPresented: $viewModel.showAppPicker,
                 catalog: viewModel.sourceCatalog,
-                onSelect: { bundleID in viewModel.selectProcess(bundleID: bundleID) }
+                onSelect: { bundleID in viewModel.selectBundle(bundleID: bundleID) }
             )
         }
         // Sheet: Mixer panel — REQ-028 stub (AC #6)

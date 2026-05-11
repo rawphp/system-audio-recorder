@@ -1,7 +1,7 @@
 # REQ-068: SourcePickerViewModel emits bundle IDs
 
 **UR:** UR-012
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** ui
 
@@ -24,13 +24,13 @@ Connector observation from ideate: `currentSelectionLabel`'s existing structure 
 
 ## Acceptance Criteria
 
-- [ ] `selectProcess(pid:)` no longer exists on `SourcePickerViewModel`; calls site at `App/Views/SourcePickerView.swift:345` is updated to `selectBundle(bundleID:)`.
-- [ ] Calling `selectBundle(bundleID: "com.google.Chrome")` sets `settings.lastSourcePreset` to `"SpecificApp:com.google.Chrome"` and toggles `showAppPicker = false`.
-- [ ] After `selectBundle(bundleID: "com.google.Chrome")`, `currentSelectionLabel` returns `"Google Chrome"` when the catalog contains a Chrome parent process with an `NSRunningApplication` entry.
-- [ ] After `selectBundle(bundleID: "com.orphan.thing")` (no parent in catalog), `currentSelectionLabel` returns `"com.orphan.thing"` — the raw bundle ID, matching the orphan label from REQ-067.
-- [ ] After `selectBundle(bundleID: "com.something.not.running")` (no pids match), `currentSelectionLabel` returns `"Specific app"` — the preserved final fallback.
-- [ ] A persisted `SpecificApp:1234` (legacy numeric pid) loaded on launch does NOT cause `currentSelectionLabel` to attempt pid lookup; the legacy branch is removed. Effective behaviour: `currentPreset` resolves to `.everything` (REQ-064), so this code path is unreachable in practice.
-- [ ] Unit tests for `selectBundle`, label resolution (parent-backed, orphan, missing), and the removal of the legacy pid branch.
+- [x] `selectProcess(pid:)` no longer exists on `SourcePickerViewModel`; calls site at `App/Views/SourcePickerView.swift:345` is updated to `selectBundle(bundleID:)`.
+- [x] Calling `selectBundle(bundleID: "com.google.Chrome")` sets `settings.lastSourcePreset` to `"SpecificApp:com.google.Chrome"` and toggles `showAppPicker = false`.
+- [x] After `selectBundle(bundleID: "com.google.Chrome")`, `currentSelectionLabel` returns `"Google Chrome"` when the catalog contains a Chrome parent process with an `NSRunningApplication` entry.
+- [x] After `selectBundle(bundleID: "com.orphan.thing")` (no parent in catalog), `currentSelectionLabel` returns `"com.orphan.thing"` — the raw bundle ID, matching the orphan label from REQ-067.
+- [x] After `selectBundle(bundleID: "com.something.not.running")` (no pids match), `currentSelectionLabel` returns `"Specific app"` — the preserved final fallback.
+- [x] A persisted `SpecificApp:1234` (legacy numeric pid) loaded on launch does NOT cause `currentSelectionLabel` to attempt pid lookup; the legacy branch is removed. Effective behaviour: `currentPreset` resolves to `.everything` (REQ-064), so this code path is unreachable in practice.
+- [x] Unit tests for `selectBundle`, label resolution (parent-backed, orphan, missing), and the removal of the legacy pid branch.
 
 ## Verification Steps
 
@@ -44,6 +44,11 @@ Connector observation from ideate: `currentSelectionLabel`'s existing structure 
    - Expected: app opens with the dropdown labeled "Google Chrome" — round-trip persistence works.
 5. **ui** Pre-set `defaults write <bundle-id> lastSourcePreset "SpecificApp:1234"` (legacy pid value) before launching.
    - Expected: app opens with the dropdown labeled "Everything" — the legacy value is discarded by REQ-064's parser and the default applies.
+
+## Outputs
+
+- `App/Views/SourcePickerView.swift` — renamed `selectProcess(bundleID:)` to `selectBundle(bundleID:)`; updated `currentSelectionLabel` to use `pids(forBundle:)` + NSRunningApplication + catalog displayName fallbacks; removed legacy numeric-pid branch; updated `AppPickerView.onSelect` wiring
+- `Tests/AudioEngineTests/SourcePickerViewTests.swift` — added `SourcePickerViewModelBundleTests` class (6 tests covering selectBundle, label resolution: parent-backed, orphan, missing, legacy numeric pid no-crash); migrated existing `testSelectingSpecificAppProcess` to call `selectBundle(bundleID:)`
 
 ## Integration
 

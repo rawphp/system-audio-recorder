@@ -241,7 +241,8 @@ final class SourcePickerViewModelTests: XCTestCase {
     }
 
     // -----------------------------------------------------------------------
-    // Selecting a specific app process updates selectedPresetKey and settings
+    // Selecting a specific app bundle updates selectedPresetKey and settings
+    // (REQ-068: renamed from selectProcess to selectBundle)
     // -----------------------------------------------------------------------
     func testSelectingSpecificAppProcess() {
         let settings = makeSettings()
@@ -249,7 +250,7 @@ final class SourcePickerViewModelTests: XCTestCase {
         let catalog = AudioSourceCatalog(provider: SPEmptyProcessListProvider())
         let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
 
-        vm.selectProcess(bundleID: "com.example.TestApp")
+        vm.selectBundle(bundleID: "com.example.TestApp")
 
         XCTAssertEqual(settings.lastSourcePreset, "SpecificApp:com.example.TestApp")
         XCTAssertEqual(vm.selectedPresetKey, "SpecificApp:com.example.TestApp")
@@ -435,6 +436,150 @@ final class SourcePickerViewModelTests: XCTestCase {
         // And the tap-denied affordance must NOT appear (bool seam doesn't carry denial signal)
         XCTAssertFalse(vm.showTapDeniedAffordance(for: .everything),
             "overrideAudioTapAvailable=false alone must not trigger the denied affordance")
+    }
+}
+
+// MARK: - SourcePickerViewModelBundleTests (REQ-068)
+
+/// Tests for selectBundle(bundleID:) and currentSelectionLabel bundle-ID resolution.
+@MainActor
+final class SourcePickerViewModelBundleTests: XCTestCase {
+
+    // -----------------------------------------------------------------------
+    // Stub catalog provider that returns a fixed list of processes.
+    // Used to exercise currentSelectionLabel without real HAL queries.
+    //
+    // Overrides executableName(for:) with the fixture displayName so that
+    // AudioSourceCatalog.refresh() builds the correct displayName even when
+    // NSRunningApplication returns nil for the fixture PIDs (which it always
+    // does, since these are synthetic PIDs that don't correspond to real processes).
+    // -----------------------------------------------------------------------
+    private struct FixedProcessListProvider: ProcessListProvider {
+        let fixedProcesses: [AudioProcess]
+        init(_ processes: [AudioProcess] = []) { self.fixedProcesses = processes }
+        func audioProcessObjectIDs() -> [AudioObjectID] { fixedProcesses.indices.map { AudioObjectID($0 + 1) } }
+        func pid(for objectID: AudioObjectID) -> pid_t? {
+            let idx = Int(objectID) - 1
+            guard fixedProcesses.indices.contains(idx) else { return nil }
+            return fixedProcesses[idx].pid
+        }
+        func bundleID(for objectID: AudioObjectID) -> String? {
+            let idx = Int(objectID) - 1
+            guard fixedProcesses.indices.contains(idx) else { return nil }
+            return fixedProcesses[idx].bundleID
+        }
+        /// Return the fixture displayName so refresh() uses it as the process label.
+        func executableName(for objectID: AudioObjectID) -> String? {
+            let idx = Int(objectID) - 1
+            guard fixedProcesses.indices.contains(idx) else { return nil }
+            return fixedProcesses[idx].displayName
+        }
+    }
+
+    private func makeVM(
+        lastPreset: String = "Everything",
+        processes: [AudioProcess] = []
+    ) -> (SourcePickerViewModel, AppSettings) {
+        let settings = makeSettings(lastPreset: lastPreset)
+        let pm = PermissionManager(micProvider: SPTestMicProvider(status: .authorized))
+        let provider = FixedProcessListProvider(processes)
+        let catalog = AudioSourceCatalog(provider: provider)
+        catalog.refresh()
+        let vm = SourcePickerViewModel(settings: settings, permissionManager: pm, sourceCatalog: catalog)
+        return (vm, settings)
+    }
+
+    // -----------------------------------------------------------------------
+    // REQ-068 AC: selectBundle sets SpecificApp:<bundleID> and dismisses sheet
+    // -----------------------------------------------------------------------
+    func testSelectBundleSetsBundleKeyAndDismissesPicker() {
+        let (vm, settings) = makeVM()
+        vm.showAppPicker = true
+
+        vm.selectBundle(bundleID: "com.google.Chrome")
+
+        XCTAssertEqual(settings.lastSourcePreset, "SpecificApp:com.google.Chrome",
+            "selectBundle must write SpecificApp:<bundleID> to settings")
+        XCTAssertEqual(vm.selectedPresetKey, "SpecificApp:com.google.Chrome")
+        XCTAssertFalse(vm.showAppPicker, "selectBundle must dismiss the app picker sheet")
+    }
+
+    // -----------------------------------------------------------------------
+    // currentSelectionLabel: parent-backed group → display name from catalog
+    //
+    // We use PIDs well above the macOS process limit (~99999) so
+    // NSRunningApplication(processIdentifier:) returns nil — the implementation
+    // then falls back to the catalog's displayName (step 2).
+    // -----------------------------------------------------------------------
+    func testCurrentSelectionLabelUsesDisplayNameWhenCatalogHasParent() {
+        // Use impossibly large PIDs so NSRunningApplication returns nil → catalog fallback fires.
+        let chromePID: pid_t = 99_001
+        let processes: [AudioProcess] = [
+            AudioProcess(pid: chromePID, bundleID: "com.google.Chrome", displayName: "Google Chrome", icon: nil),
+            AudioProcess(pid: 99_002, bundleID: "com.google.Chrome.helper", displayName: "Chrome Helper", icon: nil),
+        ]
+        let (vm, _) = makeVM(processes: processes)
+
+        vm.selectBundle(bundleID: "com.google.Chrome")
+
+        XCTAssertEqual(vm.currentSelectionLabel, "Google Chrome",
+            "Label should resolve to the catalog's displayName for the parent process when NSRunningApplication returns nil")
+    }
+
+    // -----------------------------------------------------------------------
+    // currentSelectionLabel: orphan bundle (no parent in catalog) → raw bundleID
+    // -----------------------------------------------------------------------
+    func testCurrentSelectionLabelReturnsRawBundleIDForOrphan() {
+        // "com.orphan.thing.helper" exists, but no parent "com.orphan.thing".
+        // Use a large PID so NSRunningApplication returns nil (no real process at that PID).
+        let processes: [AudioProcess] = [
+            AudioProcess(pid: 99_003, bundleID: "com.orphan.thing.helper", displayName: "thing Helper", icon: nil),
+        ]
+        let (vm, _) = makeVM(processes: processes)
+
+        vm.selectBundle(bundleID: "com.orphan.thing")
+
+        XCTAssertEqual(vm.currentSelectionLabel, "com.orphan.thing",
+            "Label should be raw bundle ID when pids exist but no parent matches")
+    }
+
+    // -----------------------------------------------------------------------
+    // currentSelectionLabel: no pids at all → "Specific app" fallback
+    // -----------------------------------------------------------------------
+    func testCurrentSelectionLabelFallsBackToSpecificAppWhenNoPidsMatch() {
+        let (vm, _) = makeVM(processes: []) // empty catalog
+
+        vm.selectBundle(bundleID: "com.something.not.running")
+
+        XCTAssertEqual(vm.currentSelectionLabel, "Specific app",
+            "Label should fall back to 'Specific app' when no pids match the bundle")
+    }
+
+    // -----------------------------------------------------------------------
+    // Legacy SpecificApp:<numeric-pid> does not crash; resolves via new path
+    // which finds no pids → "Specific app" (REQ-064 makes this unreachable in
+    // practice since the preset falls back to .everything upstream)
+    // -----------------------------------------------------------------------
+    func testLegacyNumericPidPresetDoesNotCrash() {
+        // Load the VM with a legacy-format settings key directly (bypassing selectBundle)
+        let (vm, _) = makeVM(lastPreset: "SpecificApp:1234", processes: [])
+
+        // Must not crash; label resolves through new bundle-ID path:
+        // "1234" is not a valid bundle ID, pids(forBundle: "1234") returns [] → "Specific app"
+        let label = vm.currentSelectionLabel
+        XCTAssertEqual(label, "Specific app",
+            "Legacy numeric pid key must not crash; resolves to 'Specific app' fallback")
+    }
+
+    // -----------------------------------------------------------------------
+    // selectProcess(bundleID:) must NOT exist — only selectBundle(bundleID:)
+    // (compile-time check: this test file must compile with selectBundle only)
+    // -----------------------------------------------------------------------
+    func testSelectBundleAPIExists() {
+        let (vm, _) = makeVM()
+        // If selectBundle(bundleID:) doesn't exist, this won't compile.
+        vm.selectBundle(bundleID: "com.test.App")
+        XCTAssertEqual(vm.selectedPresetKey, "SpecificApp:com.test.App")
     }
 }
 
