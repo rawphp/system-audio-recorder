@@ -239,16 +239,104 @@ public final class SourcePickerViewModel {
     }
 }
 
+// MARK: - AppPickerGroup (REQ-067)
+
+/// A grouped view-model row for `AppPickerView`.
+///
+/// One row per app bundle — helpers are folded under their parent. The groupKey
+/// (`bundleID`) is what `onSelect` emits; it is always the stripped bundle ID
+/// (e.g. `com.google.Chrome`), never a raw pid.
+public struct AppPickerGroup: Identifiable {
+    /// The canonical bundle ID for this group (parent bundle, helpers stripped).
+    public let bundleID: String
+    /// Human-readable label. Parent-backed: the parent's `displayName`. Orphan: raw `bundleID`.
+    public let displayName: String
+    /// App icon from the parent process, or nil for orphan groups.
+    public let icon: NSImage?
+    /// True when no process whose `bundleID == groupKey` (the parent) exists in the catalog.
+    public let isOrphan: Bool
+
+    public var id: String { bundleID }
+
+    // MARK: - Grouping logic
+
+    /// Computes the stripped `groupKey` for a given bundle ID.
+    ///
+    /// Strips trailing `.helper` or `.helper.<anything>` using a dot-boundary check,
+    /// so `com.google.Chrome.helper.GPU` → `com.google.Chrome`, but
+    /// `com.google.Chromehelper` is unchanged.
+    static func groupKey(for bundleID: String) -> String {
+        // Find ".helper" with a dot-separator boundary.
+        let marker = ".helper"
+        if let range = bundleID.range(of: marker) {
+            // Ensure "helper" is immediately followed by end-of-string or ".".
+            let after = range.upperBound
+            if after == bundleID.endIndex || bundleID[after] == "." {
+                return String(bundleID[bundleID.startIndex..<range.lowerBound])
+            }
+        }
+        return bundleID
+    }
+
+    /// Builds the ordered list of picker groups from the catalog's process array.
+    ///
+    /// - Parameter processes: `AudioSourceCatalog.processes` (already refreshed by caller).
+    /// - Returns: parent-backed groups (alphabetical by displayName) followed by orphan
+    ///   groups (alphabetical by bundleID). Empty input → empty array.
+    public static func groups(from processes: [AudioProcess]) -> [AppPickerGroup] {
+        // 1. Bucket pids by groupKey.
+        var buckets: [String: [AudioProcess]] = [:]
+        for process in processes {
+            let bid = process.bundleID ?? ""
+            guard !bid.isEmpty else { continue }
+            let key = groupKey(for: bid)
+            buckets[key, default: []].append(process)
+        }
+
+        // 2. For each bucket, determine representative display info.
+        var parentBacked: [AppPickerGroup] = []
+        var orphans: [AppPickerGroup] = []
+
+        for (key, members) in buckets {
+            // Parent: a member whose bundleID == groupKey exactly.
+            let parent = members.first(where: { $0.bundleID == key })
+            if let parent = parent {
+                parentBacked.append(AppPickerGroup(
+                    bundleID: key,
+                    displayName: parent.displayName,
+                    icon: parent.icon,
+                    isOrphan: false
+                ))
+            } else {
+                // Orphan: no parent process found — label with raw groupKey, no icon.
+                orphans.append(AppPickerGroup(
+                    bundleID: key,
+                    displayName: key,
+                    icon: nil,
+                    isOrphan: true
+                ))
+            }
+        }
+
+        // 3. Sort each subset alphabetically then concatenate.
+        parentBacked.sort { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+        orphans.sort { $0.bundleID.localizedCaseInsensitiveCompare($1.bundleID) == .orderedAscending }
+
+        return parentBacked + orphans
+    }
+}
+
 // MARK: - AppPickerView (inline app selector)
 
-/// Minimal app picker: lists catalog processes and lets the user pick one.
+/// Minimal app picker: lists catalog processes (grouped by bundle) and lets the
+/// user pick one app bundle.
 ///
-/// REQ-064: callback now passes `bundleID: String` rather than `pid_t` so the
-/// preset is stable across relaunches.
+/// REQ-064: callback passes `bundleID: String` (the group key).
+/// REQ-067: one row per bundle — helpers are folded under their parent.
 struct AppPickerView: View {
     @Binding var isPresented: Bool
     let catalog: AudioSourceCatalog
-    let onSelect: (String) -> Void   // bundleID
+    let onSelect: (String) -> Void   // bundleID (groupKey)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -273,17 +361,18 @@ struct AppPickerView: View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                List(catalog.processes, id: \.pid) { process in
+                let groups = AppPickerGroup.groups(from: catalog.processes)
+                List(groups) { group in
                     Button {
-                        onSelect(process.bundleID ?? process.displayName)
+                        onSelect(group.bundleID)
                     } label: {
                         HStack {
-                            if let icon = process.icon {
+                            if let icon = group.icon {
                                 Image(nsImage: icon)
                                     .resizable()
                                     .frame(width: 20, height: 20)
                             }
-                            Text(process.displayName)
+                            Text(group.displayName)
                             Spacer()
                         }
                         .contentShape(Rectangle())

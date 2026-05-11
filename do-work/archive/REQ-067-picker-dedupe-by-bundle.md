@@ -1,7 +1,7 @@
 # REQ-067: AppPickerView dedupes catalog by bundle
 
 **UR:** UR-012
-**Status:** backlog
+**Status:** done
 **Created:** 2026-05-11
 **Layer:** ui
 
@@ -29,12 +29,12 @@ Challenger observation incorporated: the `.helper` stripping rule uses a regex-e
 
 ## Acceptance Criteria
 
-- [ ] Catalog with processes for `com.google.Chrome`, `com.google.Chrome.helper`, `com.google.Chrome.helper.GPU`, `com.apple.Safari`, and `com.orphan.thing.helper` (with no `com.orphan.thing` parent) yields 3 picker rows: "Google Chrome" (parent-backed, with icon), "Safari" (parent-backed, with icon), and "com.orphan.thing" (orphan, raw bundle ID, no icon).
-- [ ] Selecting the "Google Chrome" row calls `onSelect("com.google.Chrome")` — the group key, not a pid.
-- [ ] Selecting the orphan row calls `onSelect("com.orphan.thing")` — the stripped bundle ID, even though no process exists for the parent bundle exactly.
-- [ ] Parent-backed groups appear before orphan groups in the list; both subsets are alphabetically sorted by their displayed label.
-- [ ] When the catalog is empty, the existing "No audio-emitting apps found." empty state still appears (existing behaviour at `App/Views/SourcePickerView.swift:260-267` is preserved).
-- [ ] Snapshot or unit test of the grouped view-model with the fixture catalog above asserts the row count, order, and per-row label/icon.
+- [x] Catalog with processes for `com.google.Chrome`, `com.google.Chrome.helper`, `com.google.Chrome.helper.GPU`, `com.apple.Safari`, and `com.orphan.thing.helper` (with no `com.orphan.thing` parent) yields 3 picker rows: "Google Chrome" (parent-backed, with icon), "Safari" (parent-backed, with icon), and "com.orphan.thing" (orphan, raw bundle ID, no icon).
+- [x] Selecting the "Google Chrome" row calls `onSelect("com.google.Chrome")` — the group key, not a pid.
+- [x] Selecting the orphan row calls `onSelect("com.orphan.thing")` — the stripped bundle ID, even though no process exists for the parent bundle exactly.
+- [x] Parent-backed groups appear before orphan groups in the list; both subsets are alphabetically sorted by their displayed label.
+- [x] When the catalog is empty, the existing "No audio-emitting apps found." empty state still appears (existing behaviour at `App/Views/SourcePickerView.swift:260-267` is preserved).
+- [x] Snapshot or unit test of the grouped view-model with the fixture catalog above asserts the row count, order, and per-row label/icon.
 
 ## Verification Steps
 
@@ -46,6 +46,11 @@ Challenger observation incorporated: the `.helper` stripping rule uses a regex-e
    - Expected: the picker shows a single "Google Chrome" row with the Chrome icon. There is no bare "helper" row alongside it. Any genuine orphan helpers (rare) appear at the bottom of the list with raw bundle IDs and no icons. This is the visual fix the user reported in UR-012.
 4. **ui** Click the "Google Chrome" row.
    - Expected: the picker sheet dismisses, and the dropdown's main label changes to "Google Chrome" (label resolution comes from REQ-068 but is verified here end-to-end).
+
+## Outputs
+
+- `App/Views/SourcePickerView.swift` — added `AppPickerGroup` struct with `groups(from:)` static factory; rewrote `AppPickerView` body to use grouped list (one row per bundle, `onSelect` emits `groupKey`)
+- `Tests/AudioEngineTests/SourcePickerViewTests.swift` — added `AppPickerGroupTests` class (6 unit tests: fixture 3-row, Chrome groupKey, orphan stripped bundleID, sort order, empty input, .helperish boundary)
 
 ## Integration
 

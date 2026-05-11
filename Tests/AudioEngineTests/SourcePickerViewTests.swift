@@ -437,3 +437,126 @@ final class SourcePickerViewModelTests: XCTestCase {
             "overrideAudioTapAvailable=false alone must not trigger the denied affordance")
     }
 }
+
+// MARK: - AppPickerGroupTests (REQ-067)
+
+/// Tests for the AppPickerGroup grouping logic extracted from AppPickerView.
+final class AppPickerGroupTests: XCTestCase {
+
+    // -----------------------------------------------------------------------
+    // Fixture helper: build a minimal AudioProcess without NSRunningApplication
+    // -----------------------------------------------------------------------
+    private func process(pid: pid_t, bundleID: String, displayName: String, icon: NSImage? = nil) -> AudioProcess {
+        AudioProcess(pid: pid, bundleID: bundleID, displayName: displayName, icon: icon)
+    }
+
+    // -----------------------------------------------------------------------
+    // AC #1: 5-process fixture → 3 groups in correct order
+    // -----------------------------------------------------------------------
+    func testFixtureProducesThreeGroupsInOrder() {
+        let chromeIcon = NSImage()
+        let safariIcon = NSImage()
+
+        let processes: [AudioProcess] = [
+            process(pid: 100, bundleID: "com.google.Chrome",         displayName: "Google Chrome", icon: chromeIcon),
+            process(pid: 101, bundleID: "com.google.Chrome.helper",  displayName: "Chrome Helper",  icon: nil),
+            process(pid: 102, bundleID: "com.google.Chrome.helper.GPU", displayName: "Chrome Helper (GPU)", icon: nil),
+            process(pid: 103, bundleID: "com.apple.Safari",          displayName: "Safari",         icon: safariIcon),
+            process(pid: 104, bundleID: "com.orphan.thing.helper",   displayName: "thing Helper",   icon: nil),
+        ]
+
+        let groups = AppPickerGroup.groups(from: processes)
+
+        XCTAssertEqual(groups.count, 3, "Expected 3 picker rows")
+
+        // Row 0: Google Chrome (parent-backed)
+        XCTAssertEqual(groups[0].bundleID, "com.google.Chrome")
+        XCTAssertEqual(groups[0].displayName, "Google Chrome")
+        XCTAssertTrue(groups[0].icon === chromeIcon, "Chrome row should have the parent's icon")
+        XCTAssertFalse(groups[0].isOrphan)
+
+        // Row 1: Safari (parent-backed)
+        XCTAssertEqual(groups[1].bundleID, "com.apple.Safari")
+        XCTAssertEqual(groups[1].displayName, "Safari")
+        XCTAssertTrue(groups[1].icon === safariIcon, "Safari row should have the parent's icon")
+        XCTAssertFalse(groups[1].isOrphan)
+
+        // Row 2: orphan (no parent process for com.orphan.thing)
+        XCTAssertEqual(groups[2].bundleID, "com.orphan.thing")
+        XCTAssertEqual(groups[2].displayName, "com.orphan.thing")
+        XCTAssertNil(groups[2].icon)
+        XCTAssertTrue(groups[2].isOrphan)
+    }
+
+    // -----------------------------------------------------------------------
+    // AC #2: selecting Chrome row → onSelect called with groupKey, not a pid
+    // -----------------------------------------------------------------------
+    func testSelectingChromeRowEmitsGroupKey() {
+        let processes: [AudioProcess] = [
+            process(pid: 100, bundleID: "com.google.Chrome",        displayName: "Google Chrome"),
+            process(pid: 101, bundleID: "com.google.Chrome.helper", displayName: "Chrome Helper"),
+        ]
+
+        let groups = AppPickerGroup.groups(from: processes)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].bundleID, "com.google.Chrome",
+            "onSelect should receive the groupKey (bundleID), not a pid")
+    }
+
+    // -----------------------------------------------------------------------
+    // AC #3: selecting orphan row → onSelect called with stripped bundle ID
+    // -----------------------------------------------------------------------
+    func testSelectingOrphanRowEmitsStrippedBundleID() {
+        let processes: [AudioProcess] = [
+            process(pid: 104, bundleID: "com.orphan.thing.helper", displayName: "thing Helper"),
+        ]
+
+        let groups = AppPickerGroup.groups(from: processes)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].bundleID, "com.orphan.thing",
+            "Orphan row should carry the stripped bundle ID")
+    }
+
+    // -----------------------------------------------------------------------
+    // AC #4: parent-backed groups appear before orphan groups; both alphabetical
+    // -----------------------------------------------------------------------
+    func testSortingParentBeforeOrphansAndAlphabetical() {
+        let processes: [AudioProcess] = [
+            process(pid: 1, bundleID: "com.zzz.orphan.helper",     displayName: "zzz Helper"),
+            process(pid: 2, bundleID: "com.beta.App",              displayName: "Beta App"),
+            process(pid: 3, bundleID: "com.aaa.orphan.helper",     displayName: "aaa Helper"),
+            process(pid: 4, bundleID: "com.alpha.App",             displayName: "Alpha App"),
+        ]
+
+        let groups = AppPickerGroup.groups(from: processes)
+
+        // Parents first (alphabetical by displayName), then orphans (alphabetical by bundleID)
+        XCTAssertEqual(groups.count, 4)
+        XCTAssertEqual(groups[0].bundleID, "com.alpha.App")
+        XCTAssertEqual(groups[1].bundleID, "com.beta.App")
+        XCTAssertEqual(groups[2].bundleID, "com.aaa.orphan")
+        XCTAssertEqual(groups[3].bundleID, "com.zzz.orphan")
+    }
+
+    // -----------------------------------------------------------------------
+    // AC #5: empty catalog → empty groups array
+    // -----------------------------------------------------------------------
+    func testEmptyCatalogProducesEmptyGroups() {
+        let groups = AppPickerGroup.groups(from: [])
+        XCTAssertTrue(groups.isEmpty)
+    }
+
+    // -----------------------------------------------------------------------
+    // Edge: .helper boundary — .helperish does NOT fold under parent
+    // -----------------------------------------------------------------------
+    func testHelperishSuffixDoesNotFold() {
+        let processes: [AudioProcess] = [
+            process(pid: 1, bundleID: "com.google.Chrome",         displayName: "Google Chrome"),
+            process(pid: 2, bundleID: "com.google.Chromehelper",   displayName: "Chromehelper"),
+        ]
+
+        let groups = AppPickerGroup.groups(from: processes)
+        // Chromehelper has no dot separator → should NOT fold under Chrome
+        XCTAssertEqual(groups.count, 2)
+    }
+}
