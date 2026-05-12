@@ -34,13 +34,9 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      # NOTE: xcodebuild build is used here instead of xcodebuild test because
-      # the Tests target (AudioEngineTests + IntegrationTests) does not exist yet.
-      # Switch to `xcodebuild test` once REQ-036 (recording-session-int-tests) lands
-      # and the scheme includes a test action with the Tests target.
-      - name: Build
+      - name: Test
         run: |
-          xcodebuild build \
+          xcodebuild test \
             -project SystemAudioRecorder.xcodeproj \
             -scheme SystemAudioRecorder \
             -destination 'platform=macOS' \

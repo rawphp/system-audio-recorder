@@ -5,7 +5,7 @@ import lame
 // MARK: - BitrateMode
 
 /// The MPEG bitrate allocation strategy for MP3 encoding.
-public enum BitrateMode {
+public enum BitrateMode: Sendable {
     /// Variable bitrate — LAME allocates bits per frame to maintain perceptual quality.
     /// Uses LAME's `vbr_mtrh` (default VBR) mode.
     case vbr

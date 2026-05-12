@@ -708,44 +708,29 @@ public actor RecordingSession {
     /// hopping onto the actor's executor on every buffer.
     private final class SilenceDetectorState: @unchecked Sendable {
         private let lock = NSLock()
-        /// Wall-clock time at which the *current* active segment began
-        /// (i.e. after the last resume, or when the session started).
-        private var segmentStart: Date = Date()
-        /// Accumulated *active* (non-paused) seconds at the time of the last pause.
-        private var accumulatedActiveSeconds: TimeInterval = 0
         /// True while the session is paused — detector drops buffers.
         private var _paused: Bool = false
+        /// Incremented whenever pause/resume should reset detector counters.
+        private var resetGeneration: Int = 0
 
-        var isPaused: Bool {
+        var snapshot: (isPaused: Bool, resetGeneration: Int) {
             lock.lock(); defer { lock.unlock() }
-            return _paused
+            return (_paused, resetGeneration)
         }
 
         /// Marks the session as paused; freezes active-time accounting.
         func pause() {
             lock.lock(); defer { lock.unlock() }
-            // Accumulate the active seconds up to now.
-            accumulatedActiveSeconds += Date().timeIntervalSince(segmentStart)
             _paused = true
+            resetGeneration += 1
         }
 
         /// Marks the session as resumed; restarts the segment clock AND
         /// resets accumulated active seconds (grace period restarts from 0).
         func resume() {
             lock.lock(); defer { lock.unlock() }
-            accumulatedActiveSeconds = 0
-            segmentStart = Date()
             _paused = false
-        }
-
-        /// Returns total active (non-paused) seconds since the last resume
-        /// (or since creation, whichever is more recent).
-        func activeSeconds() -> TimeInterval {
-            lock.lock(); defer { lock.unlock() }
-            if _paused {
-                return accumulatedActiveSeconds
-            }
-            return accumulatedActiveSeconds + Date().timeIntervalSince(segmentStart)
+            resetGeneration += 1
         }
     }
 
@@ -755,7 +740,7 @@ public actor RecordingSession {
     /// Installs the silence-detector async task.
     ///
     /// The task:
-    /// 1. Skips the first `gracePeriod` (2.0 s) of active recording time.
+    /// 1. Skips the first `gracePeriod` (2.0 s) of active audio duration.
     /// 2. Evaluates each buffer's RMS (via `MeterTap.computeRMS`).
     /// 3. If RMS < −60 dBFS, accumulates the buffer's duration into the
     ///    consecutive-silence counter; otherwise resets it immediately.
@@ -785,39 +770,53 @@ public actor RecordingSession {
         return Task.detached { [weak self] in
             guard let self else { return }
 
-            // Wall-clock time when the current consecutive-silence run started.
-            // nil means the previous buffer was not silent.
-            var silenceRunStart: Date? = nil
+            var activeAudioSeconds: TimeInterval = 0
+            var lastResetGeneration = 0
+            // Consecutive silent audio duration. Use buffer duration rather than
+            // wall-clock time so scheduler delays cannot falsely trip auto-stop.
+            var silentAudioSeconds: TimeInterval = 0
 
             for await buf in stream {
+                let detectorState = state.snapshot
+                if detectorState.resetGeneration != lastResetGeneration {
+                    activeAudioSeconds = 0
+                    silentAudioSeconds = 0
+                    lastResetGeneration = detectorState.resetGeneration
+                }
+
                 // Drop buffers while paused (silence counter frozen).
-                guard !state.isPaused else {
-                    silenceRunStart = nil
+                guard !detectorState.isPaused else {
+                    silentAudioSeconds = 0
                     continue
                 }
 
-                // Skip grace period.
-                guard state.activeSeconds() >= gracePeriod else {
-                    silenceRunStart = nil
+                let frames = Double(buf.frameLength)
+                let sampleRate = buf.format.sampleRate
+                let bufferDuration = sampleRate > 0 ? frames / sampleRate : 0
+                let previousActiveAudioSeconds = activeAudioSeconds
+                activeAudioSeconds += bufferDuration
+
+                let postGraceDuration: TimeInterval
+                if previousActiveAudioSeconds >= gracePeriod {
+                    postGraceDuration = bufferDuration
+                } else if activeAudioSeconds > gracePeriod {
+                    postGraceDuration = activeAudioSeconds - gracePeriod
+                } else {
+                    silentAudioSeconds = 0
                     continue
                 }
 
                 let rms = MeterTap.computeRMS(buf)
 
                 if rms < silenceDBFS {
-                    // Silent buffer — start or continue the silence run.
-                    if silenceRunStart == nil {
-                        silenceRunStart = Date()
-                    }
-                    // Check if we've been silent long enough.
-                    let silentSecs = Date().timeIntervalSince(silenceRunStart!)
-                    if silentSecs >= threshold {
+                    silentAudioSeconds += postGraceDuration
+                    if silentAudioSeconds >= threshold {
                         _ = await self.stop()
                         return
                     }
                 } else {
                     // Audio detected — reset the consecutive silence run.
-                    silenceRunStart = nil
+                    silentAudioSeconds = 0
                 }
             }
         }

@@ -117,6 +117,22 @@ final class EncodingQueueTests: XCTestCase {
         }
     }
 
+    func testQueueRunsAtMostTwoJobsConcurrently() async throws {
+        var jobs: [EncodingJob] = []
+        for i in 0..<3 {
+            let wavURL = try writeSilenceWAV(to: tmpDir, name: "limited\(i).wav", durationSeconds: 8)
+            let mp3URL = tmpDir.appendingPathComponent("limited\(i).mp3")
+            jobs.append(EncodingJob(wavURL: wavURL, mp3URL: mp3URL, bitrate: 192, mode: .vbr))
+        }
+
+        for job in jobs {
+            await queue.enqueue(job: job, keepWAV: true)
+        }
+
+        XCTAssertLessThanOrEqual(queue.running.count, 2, "EncodingQueue must cap active encodes at two")
+        XCTAssertEqual(queue.pending.count, 1, "Third job should remain pending until a running job finishes")
+    }
+
     // MARK: - testWAVDeletedOnSuccessWhenKeepFalse
 
     /// AC-3: WAV deleted after successful encode when `keepWAV == false`.
@@ -221,6 +237,26 @@ final class EncodingQueueTests: XCTestCase {
         // Queue arrays must be empty
         XCTAssertTrue(queue.pending.isEmpty, "pending must be empty after cancelAll")
         XCTAssertTrue(queue.running.isEmpty, "running must be empty after cancelAll")
+    }
+
+    func testCancelAllDoesNotTrackNeverStartedPendingJobsAsCancelled() async throws {
+        for i in 0..<10 {
+            let wavURL = try writeSilenceWAV(to: tmpDir, name: "pending-cancel\(i).wav", durationSeconds: 8)
+            let mp3URL = tmpDir.appendingPathComponent("pending-cancel\(i).mp3")
+            let job = EncodingJob(wavURL: wavURL, mp3URL: mp3URL, bitrate: 192, mode: .vbr)
+            await queue.enqueue(job: job, keepWAV: true)
+        }
+
+        XCTAssertEqual(queue.running.count, 2, "test setup expects two running jobs")
+        XCTAssertEqual(queue.pending.count, 8, "test setup expects eight never-started jobs")
+
+        await queue.cancelAll()
+
+        XCTAssertLessThanOrEqual(
+            queue.cancelledJobIDCountForTesting,
+            2,
+            "cancelAll must not retain IDs for jobs that never started and cannot emit terminal callbacks"
+        )
     }
 
     // MARK: - testObservableStateChangesOnMainActor

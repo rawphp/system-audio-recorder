@@ -341,7 +341,7 @@ public final class AppStore {
         // Mic-only does not need the audio tap — skip the gate entirely.
         // For every other preset, re-probe tap status and abort early if unavailable.
         if preset != .micOnly {
-            await permissionManager.requestAudioTap()
+            _ = await permissionManager.requestAudioTap()
             if permissionManager.audioTapStatus != .available {
                 errorSurface.reportCustomAlert(AppAlert(
                     title: "Audio Tap Unavailable",
