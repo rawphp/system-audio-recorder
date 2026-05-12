@@ -604,6 +604,87 @@ final class RecordingSessionTests: XCTestCase {
         XCTAssertLessThan(elapsed, 5.0, "stopped too late: \(elapsed)s")
     }
 
+    func testSilenceDetectorGraceUsesAudioDurationNotWallClock() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+        defer {
+            e.stop()
+            Task { _ = await session.stop() }
+        }
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        try await session.start(config: cfg)
+
+        e.pushSilent(frameCount: 48_000)
+        e.pushSilent(frameCount: 48_000)
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let afterGraceState = await session.state
+        XCTAssertEqual(afterGraceState, .recording, "2 s grace alone must not stop the session")
+
+        e.pushSilent(frameCount: 48_000)
+
+        let deadline = Date().addingTimeInterval(1.0)
+        while Date() < deadline {
+            if await session.state == .stopped { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let finalState = await session.state
+        XCTAssertEqual(finalState, .stopped,
+                       "grace and silence threshold should be measured from audio duration, not CI wall-clock speed")
+    }
+
+    func testSilenceDetectorDoesNotCountGraceOverlapTowardSilenceThreshold() async throws {
+        let session = RecordingSession()
+        let e = FakeEmitter(id: "app1")
+        defer {
+            e.stop()
+            Task { _ = await session.stop() }
+        }
+
+        let cfg = SessionConfig(
+            sources: [SessionConfig.Source(id: "app1", emitter: e)],
+            outputMode: .mixed,
+            outputFolder: tmpDir,
+            timestamp: "2026-05-09T10-00-00",
+            autoStopSilenceSeconds: 1.0
+        )
+
+        try await session.start(config: cfg)
+
+        e.pushSilent(frameCount: 72_000) // 1.5 s, fully inside grace.
+        e.pushSilent(frameCount: 48_000) // 0.5 s grace + 0.5 s post-grace.
+
+        let overlapDeadline = Date().addingTimeInterval(1.0)
+        while Date() < overlapDeadline {
+            if await session.state == .stopped { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let afterOverlapState = await session.state
+        XCTAssertEqual(afterOverlapState, .recording,
+                       "Silence inside the grace portion of a straddling buffer must not count toward threshold")
+
+        e.pushSilent(frameCount: 24_000) // Remaining 0.5 s post-grace silence.
+
+        let deadline = Date().addingTimeInterval(1.0)
+        while Date() < deadline {
+            if await session.state == .stopped { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let finalState = await session.state
+        XCTAssertEqual(finalState, .stopped,
+                       "Only post-grace silent audio duration should count toward auto-stop")
+    }
+
     /// AC4: Mixing in audio above -60 dBFS resets the silence counter.
     func testSilenceDetectorResetsOnAudio() async throws {
         let session = RecordingSession()

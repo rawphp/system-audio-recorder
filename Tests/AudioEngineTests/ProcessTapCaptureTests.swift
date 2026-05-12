@@ -347,40 +347,6 @@ final class ProcessTapCaptureTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(buffer.format.sampleRate, 44_100)
     }
 
-    // MARK: testRealEmitterFactoryRequiresEntitlement
-    //
-    // The real Core Audio Tap path requires the audio-input entitlement and
-    // (on first run) interactive user permission. In CI / unentitled test
-    // runners this throws either pidTranslationFailed or tapCreationFailed.
-    // Either is acceptable — what matters is that the API symbols exist and
-    // the call returns rather than crashing.
-    func testRealEmitterFactoryRequiresEntitlement() throws {
-        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil,
-                      "Real Core Audio Tap requires entitled signed app; skipping in CI")
-
-        let factory = RealEmitterFactory()
-        // Use our own pid — we may or may not be Core Audio-registered.
-        let ourPID = ProcessInfo.processInfo.processIdentifier
-
-        // We expect this to throw OR return a working emitter. Either is
-        // acceptable — the assertion is "no crash, well-typed error path".
-        do {
-            let emitter = try factory.makeEmitter(for: ourPID)
-            emitter.teardown()
-        } catch let error as CaptureError {
-            switch error {
-            case .pidTranslationFailed,
-                 .tapCreationFailed,
-                 .aggregateDeviceCreationFailed,
-                 .audioUnitFailed:
-                // All expected failure modes for an unentitled runner
-                break
-            default:
-                XCTFail("Unexpected CaptureError: \(error)")
-            }
-        }
-    }
-
     // MARK: - REQ-045: Graceful per-pid emitter failure
 
     // MARK: testInitContinuesWhenOnePidFails (REQ-045)

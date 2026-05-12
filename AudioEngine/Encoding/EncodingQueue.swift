@@ -62,18 +62,22 @@ public final class EncodingQueue {
 
     // MARK: - Private internals
 
-    private let opQueue: OperationQueue = {
-        let q = OperationQueue()
-        q.name = "com.tomkaczocha.EncodingQueue"
-        q.maxConcurrentOperationCount = 2
-        q.qualityOfService = .userInitiated
-        return q
-    }()
+    private let maxConcurrentJobs = 2
 
     /// Tracks cancellable tasks for each running job so we can cancel by id.
     private var runningTasks: [UUID: Task<Void, Never>] = [:]
+    /// Keep-WAV preference for jobs that are still pending.
+    private var pendingKeepWAV: [UUID: Bool] = [:]
+    /// Job IDs cancelled by `cancelAll`; terminal callbacks from those tasks are ignored.
+    private var cancelledJobIDs: Set<UUID> = []
 
     public init() {}
+
+    #if DEBUG
+    internal var cancelledJobIDCountForTesting: Int {
+        cancelledJobIDs.count
+    }
+    #endif
 
     // MARK: - Public API
 
@@ -84,17 +88,21 @@ public final class EncodingQueue {
     ///   - keepWAV: When `false`, the source WAV is deleted after a successful encode.
     ///              On failure the WAV is always preserved regardless of this value.
     public func enqueue(job: EncodingJob, keepWAV: Bool) async {
+        cancelledJobIDs.remove(job.id)
         pending.append(job)
-        startJob(job, keepWAV: keepWAV)
+        pendingKeepWAV[job.id] = keepWAV
+        drainQueue()
     }
 
     /// Cancels all pending and running jobs; removes any partial MP3 files.
     public func cancelAll() async {
-        // Cancel all running tasks
+        // Only running jobs can emit terminal callbacks after cancellation.
+        cancelledJobIDs.formUnion(running.map(\.id))
         for task in runningTasks.values {
             task.cancel()
         }
         runningTasks.removeAll()
+        pendingKeepWAV.removeAll()
 
         // Remove partial MP3s for jobs that were pending (never started)
         for job in pending {
@@ -105,18 +113,21 @@ public final class EncodingQueue {
             try? FileManager.default.removeItem(at: job.mp3URL)
         }
 
-        // Drain the operation queue
-        opQueue.cancelAllOperations()
-
         pending.removeAll()
         running.removeAll()
     }
 
     // MARK: - Private
 
+    private func drainQueue() {
+        while running.count < maxConcurrentJobs, !pending.isEmpty {
+            let job = pending.removeFirst()
+            let keepWAV = pendingKeepWAV.removeValue(forKey: job.id) ?? true
+            startJob(job, keepWAV: keepWAV)
+        }
+    }
+
     private func startJob(_ job: EncodingJob, keepWAV: Bool) {
-        // Move from pending → running state.
-        pending.removeAll { $0.id == job.id }
         var runningJob = job
         running.append(runningJob)
 
@@ -143,11 +154,19 @@ public final class EncodingQueue {
                     try? FileManager.default.removeItem(at: job.wavURL)
                 }
                 await MainActor.run {
+                    if self.cancelledJobIDs.remove(job.id) != nil {
+                        try? FileManager.default.removeItem(at: job.mp3URL)
+                        self.runningTasks.removeValue(forKey: job.id)
+                        self.running.removeAll { $0.id == job.id }
+                        self.drainQueue()
+                        return
+                    }
                     self.runningTasks.removeValue(forKey: job.id)
                     self.running.removeAll { $0.id == job.id }
                     runningJob.progress = 1.0
                     self.completed.append(runningJob)
                     self.recentlyCompletedJob = runningJob
+                    self.drainQueue()
                 }
             } catch {
                 // Failure — always preserve WAV; remove partial MP3 if present.
@@ -155,9 +174,16 @@ public final class EncodingQueue {
                 var failedJob = job
                 failedJob.error = error
                 await MainActor.run {
+                    if self.cancelledJobIDs.remove(job.id) != nil {
+                        self.runningTasks.removeValue(forKey: job.id)
+                        self.running.removeAll { $0.id == job.id }
+                        self.drainQueue()
+                        return
+                    }
                     self.runningTasks.removeValue(forKey: job.id)
                     self.running.removeAll { $0.id == job.id }
                     self.failed.append(failedJob)
+                    self.drainQueue()
                 }
             }
         }
