@@ -1,6 +1,10 @@
-# System Audio to MP3
+# System Audio Recorder
 
-A signed, notarized macOS app that records system audio (and optionally microphone) to MP3 with no virtual audio devices and no driver installs. Requires macOS 14.4+ (Sonoma).
+System Audio Recorder is macOS app that records system audio (and optionally microphone) to MP3 — no virtual audio devices, no driver installs. Requires macOS 14.4+ (Sonoma).
+
+## Download
+
+Grab the latest signed, notarized DMG from the [Releases page](https://github.com/rawphp/system-audio-recorder/releases/latest).
 
 ## What It Does
 
